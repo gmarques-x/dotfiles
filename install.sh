@@ -3,7 +3,8 @@
 #
 #   1. Homebrew
 #   2. OneDrive (then waits while you finish its setup wizard)
-#   3. Terminal tools from the Brewfile (Ghostty, eza, yazi, starship, ...)
+#   3. Terminal tools and apps from the Brewfile (Ghostty, eza, yazi, starship,
+#      Claude, ChatGPT, Gemini and their CLIs, ...)
 #   4. Links the configs into ~/.config and ~/.zshenv
 #   5. Links ~/.ssh to the "ssh" folder in OneDrive
 #   6. Git identity, GitHub login and SSH keys on GitHub
@@ -153,8 +154,19 @@ fi
 
 # ---------------------------------------------------------------- 3. Tools
 
-step "Terminal tools (Brewfile)"
-if "$BREW" bundle check --file="$DOTFILES/Brewfile" >/dev/null 2>&1; then
+step "Terminal tools and apps (Brewfile)"
+# An app installed outside Homebrew (dragged in, or from its own installer)
+# makes `brew install --cask` fail, so those casks are skipped and left alone.
+skip_casks=""
+for pair in claude:Claude chatgpt:ChatGPT google-gemini:Gemini ghostty:Ghostty; do
+  cask="${pair%%:*}" app="${pair#*:}"
+  if [ -d "/Applications/$app.app" ] && ! "$BREW" list --cask "$cask" >/dev/null 2>&1; then
+    skip_casks="$skip_casks $cask"
+    info "${DIM}$app is already installed outside Homebrew; leaving it as it is${N}"
+  fi
+done
+export HOMEBREW_BUNDLE_CASK_SKIP="${skip_casks# }"
+if [ -z "$skip_casks" ] && "$BREW" bundle check --file="$DOTFILES/Brewfile" >/dev/null 2>&1; then
   ok "everything installed"
 else
   "$BREW" bundle --file="$DOTFILES/Brewfile" || die "brew bundle failed"

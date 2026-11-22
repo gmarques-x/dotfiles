@@ -17,7 +17,15 @@ The installer runs these steps in order, and is safe to run again; finished step
 
 1. **Homebrew**: installs it if missing (asks for your Mac password).
 2. **OneDrive**: installs it, opens it, and **waits** while you sign in and let it sync. Press Return when the wizard is done.
-3. **Terminal tools**: everything in the [`Brewfile`](Brewfile): Ghostty, JetBrains Mono, starship, eza, bat, yazi, zoxide, fzf, ripgrep, fd, jq, fastfetch, gh, and the zsh plugins.
+3. **Terminal tools and apps**: everything in the [`Brewfile`](Brewfile): Ghostty, JetBrains Mono, starship, eza, bat, yazi, zoxide, fzf, ripgrep, fd, jq, fastfetch, gh, the zsh plugins, and the AI apps:
+
+   | | Desktop app | CLI |
+   | --- | --- | --- |
+   | Claude | Claude | Claude Code (`claude`) |
+   | ChatGPT | ChatGPT | Codex (`codex`) |
+   | Gemini | Gemini (macOS 15+, Apple Silicon) | Antigravity CLI (`agy`), Google's replacement for Gemini CLI |
+
+   An app that's already in /Applications but wasn't installed by Homebrew is left alone. Sign in to each app and CLI on first launch.
 4. **Configs**: links them into place (see below).
 5. **`~/.ssh`**: becomes a link to the `ssh` folder in your OneDrive. Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
 6. **Git and GitHub**: asks for your name and email, writes the git identity, creates an `id_ed25519` key if there isn't one, logs in to GitHub with `gh` in the browser, and uploads the key to GitHub as both an authentication and a signing key. Commits and tags are signed with that key.

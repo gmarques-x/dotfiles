@@ -28,3 +28,11 @@ brew "yazi"
 brew "poppler"   # PDF previews
 brew "sevenzip"  # archive previews
 brew "resvg"     # SVG previews
+
+# AI apps: desktop apps and their command-line tools
+cask "claude"           # Claude desktop
+cask "claude-code"      # Claude Code CLI (claude)
+cask "chatgpt"          # ChatGPT desktop
+cask "codex"            # OpenAI Codex CLI (codex)
+cask "google-gemini"    # Gemini desktop (macOS 15+, Apple Silicon)
+cask "antigravity-cli"  # Google's CLI (agy); replaced Gemini CLI
