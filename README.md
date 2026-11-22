@@ -38,12 +38,14 @@ The installer runs these steps in order, and is safe to run again; finished step
 
    Run it on its own with `macos/settings.sh`. Some settings need a log out. If the Accessibility ones report an error, give your terminal Full Disk Access and run it again.
 
+8. **Debloat**: lists whichever of GarageBand, iMovie, Keynote, Numbers and Pages are installed, plus GarageBand's sound library (several GB, kept if Logic Pro is installed), and after you confirm moves them to the Trash. They can be reinstalled from the App Store. The other built-in apps (Safari, Mail, Music, Photos, News, Stocks, ...) are on the read-only system volume, so macOS doesn't let them be removed.
+
 Options, as environment variables:
 
 | Variable | Effect |
 | --- | --- |
 | `ONEDRIVE_SSH_DIR=name` | Use a different folder in OneDrive instead of `ssh` |
-| `DOTFILES_SKIP="onedrive ssh github macos"` | Skip any of those steps |
+| `DOTFILES_SKIP="onedrive ssh github macos debloat"` | Skip any of those steps |
 
 ## What goes where
 

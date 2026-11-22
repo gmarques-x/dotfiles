@@ -9,13 +9,15 @@
 #   5. Links ~/.ssh to the "ssh" folder in OneDrive
 #   6. Git identity, GitHub login and SSH keys on GitHub
 #   7. macOS settings (macos/settings.sh)
+#   8. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
+#      Pages) and GarageBand's sound library to the Trash, after asking
 #
 # Safe to run again: anything already done is skipped. Anything replaced is
 # moved (never deleted) to ~/.local/state/dotfiles/backup/<timestamp>/.
 #
 # Environment overrides:
 #   ONEDRIVE_SSH_DIR   name of the ssh folder inside OneDrive (default: ssh)
-#   DOTFILES_SKIP      space-separated steps to skip: onedrive ssh github macos
+#   DOTFILES_SKIP      space-separated steps to skip: onedrive ssh github macos debloat
 
 set -uo pipefail
 
@@ -324,6 +326,53 @@ else
     ok "applied (some need a log out to take full effect)"
   else
     warn "applied, except the ones above (some need a log out to take full effect)"
+  fi
+fi
+
+# ---------------------------------------------------------------- 8. Debloat
+
+# Only the Apple apps installed from the App Store can go. Safari, Mail, Music,
+# Photos, News, Stocks and the rest live on the sealed, read-only system
+# volume, and macOS puts them back if that is ever changed.
+step "Remove Apple apps (GarageBand, iMovie, Keynote, Numbers, Pages)"
+
+# trash PATH: move PATH to the Trash (asking for the admin password if needed).
+trash() {
+  local src="$1" dest="$HOME/.Trash/${1##*/}"
+  [ -e "$dest" ] && dest="$dest $(date +%H%M%S)"
+  mv "$src" "$dest" 2>/dev/null || sudo mv "$src" "$dest"
+}
+
+if skip debloat; then
+  warn "skipped (DOTFILES_SKIP)"
+else
+  found=()
+  for app in GarageBand iMovie Keynote Numbers Pages; do
+    [ -d "/Applications/$app.app" ] && found+=("/Applications/$app.app")
+  done
+  # GarageBand's instruments and loops (several GB), unless Logic Pro still uses them.
+  if [ -d "/Applications/GarageBand.app" ] && [ ! -d "/Applications/Logic Pro.app" ]; then
+    for dir in "/Library/Application Support/GarageBand" "/Library/Application Support/Logic" \
+               "/Library/Audio/Apple Loops" "/Library/Audio/Impulse Responses"; do
+      [ -d "$dir" ] && found+=("$dir")
+    done
+  fi
+
+  if [ "${#found[@]}" -eq 0 ]; then
+    ok "none installed"
+  else
+    for f in "${found[@]}"; do
+      info "$f ${DIM}($(du -sh "$f" 2>/dev/null | awk '{print $1}'))${N}"
+    done
+    case "$(ask "Move these to the Trash? (they can be reinstalled from the App Store) [y/N]")" in
+      [Yy]*)
+        for f in "${found[@]}"; do
+          trash "$f" && ok "moved ${f##*/} to the Trash" || warn "could not move $f (drag it to the Trash in Finder)"
+        done
+        info "Empty the Trash to free the space."
+        ;;
+      *) info "kept" ;;
+    esac
   fi
 fi
 
