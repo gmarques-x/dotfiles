@@ -265,8 +265,11 @@ else
   [ -d "$HOME/.ssh" ] || mkdir -m 700 "$HOME/.ssh"
   chmod 700 "$HOME/.ssh/" 2>/dev/null || true
   if [ ! -f "$HOME/.ssh/config" ]; then
-    cp "$DOTFILES/ssh/config" "$HOME/.ssh/config" && chmod 600 "$HOME/.ssh/config"
-    ok "added ssh config"
+    if cp "$DOTFILES/ssh/config" "$HOME/.ssh/config" && chmod 600 "$HOME/.ssh/config"; then
+      ok "added ssh config"
+    else
+      warn "could not add the ssh config; copy $(pretty "$DOTFILES/ssh/config") to ~/.ssh/config yourself"
+    fi
   else
     ok "ssh config present"
   fi
