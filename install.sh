@@ -6,7 +6,7 @@
 #   3. Terminal tools and apps from the Brewfile (Ghostty, eza, yazi, starship,
 #      Claude, ChatGPT, Gemini and their CLIs, ...)
 #   4. Links the configs into ~/.config and ~/.zshenv
-#   5. Links ~/.ssh to the "ssh" folder in OneDrive
+#   5. Links ~/.ssh to the "dot-ssh" folder in OneDrive
 #   6. Links ~/.claude (Claude Code's settings, skills, memory) to the
 #      "claude" folder in OneDrive
 #   7. Git identity, GitHub login and SSH keys on GitHub
@@ -18,7 +18,7 @@
 # moved (never deleted) to ~/.local/state/dotfiles/backup/<timestamp>/.
 #
 # Environment overrides:
-#   ONEDRIVE_SSH_DIR     name of the ssh folder inside OneDrive (default: ssh)
+#   ONEDRIVE_SSH_DIR     name of the ssh folder inside OneDrive (default: dot-ssh)
 #   ONEDRIVE_CLAUDE_DIR  name of the Claude Code folder inside OneDrive (default: claude)
 #   DOTFILES_SKIP        space-separated steps to skip: onedrive ssh claude github macos debloat
 
@@ -29,7 +29,7 @@ CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
 STATE="$HOME/.local/state/dotfiles"
 BACKUP="$STATE/backup/$(date +%Y%m%d-%H%M%S)"
 CLOUD="$HOME/Library/CloudStorage"
-SSH_DIR_NAME="${ONEDRIVE_SSH_DIR:-ssh}"
+SSH_DIR_NAME="${ONEDRIVE_SSH_DIR:-dot-ssh}"
 CLAUDE_DIR_NAME="${ONEDRIVE_CLAUDE_DIR:-claude}"
 SKIP=" ${DOTFILES_SKIP:-} "
 
@@ -113,7 +113,7 @@ pick_onedrive() {
     info "More than one OneDrive folder:"
     i=0
     while IFS= read -r d; do i=$((i + 1)); info "  $i  $(pretty "$d")"; done <<<"$folders"
-    n="$(ask "Which one holds your ssh and claude folders?" 1)"
+    n="$(ask "Which one holds your $SSH_DIR_NAME and $CLAUDE_DIR_NAME folders?" 1)"
     OD="$(sed -n "${n}p" <<<"$folders")"
     [ -n "$OD" ] || die "not a choice: $n"
   fi
@@ -188,7 +188,7 @@ else
     open -a OneDrive || warn "could not open OneDrive; open it from Applications"
     info "OneDrive is opening. In its wizard:"
     info "  • sign in"
-    info "  • let your OneDrive folder finish syncing (your ssh folder must be downloaded)"
+    info "  • let your OneDrive folder finish syncing (your $SSH_DIR_NAME folder must be downloaded)"
     info "  • optionally turn on Desktop and Documents backup"
     while :; do
       pause "Press Return when the OneDrive wizard is finished (or type skip):"
@@ -254,7 +254,7 @@ step "~/.ssh → OneDrive/$SSH_DIR_NAME"
 if skip ssh; then
   warn "skipped (DOTFILES_SKIP)"
 else
-  if [ -L "$HOME/.ssh" ] && [ -d "$HOME/.ssh" ]; then
+  if [ -L "$HOME/.ssh" ] && [ -d "$HOME/.ssh" ] && [ "$(basename "$(readlink "$HOME/.ssh")")" = "$SSH_DIR_NAME" ]; then
     ok "already linked → $(readlink "$HOME/.ssh" | sed "s|$HOME|~|")"
   elif ! pick_onedrive; then
     warn "no OneDrive folder found; ~/.ssh stays on this Mac (run again after OneDrive syncs)"
@@ -286,7 +286,7 @@ fi
 step "~/.claude → OneDrive/$CLAUDE_DIR_NAME"
 if skip claude; then
   warn "skipped (DOTFILES_SKIP)"
-elif [ -L "$HOME/.claude" ] && [ -d "$HOME/.claude" ]; then
+elif [ -L "$HOME/.claude" ] && [ -d "$HOME/.claude" ] && [ "$(basename "$(readlink "$HOME/.claude")")" = "$CLAUDE_DIR_NAME" ]; then
   ok "already linked → $(readlink "$HOME/.claude" | sed "s|$HOME|~|")"
 elif ! pick_onedrive; then
   warn "no OneDrive folder found; ~/.claude stays on this Mac (run again after OneDrive syncs)"

@@ -27,7 +27,7 @@ The installer runs these steps in order, and is safe to run again; finished step
 
    An app that's already in /Applications but wasn't installed by Homebrew (Chrome, Claude, ...) is left alone. Sign in to each app and CLI on first launch.
 4. **Configs**: links them into place (see below).
-5. **`~/.ssh`**: becomes a link to the `ssh` folder in your OneDrive. Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
+5. **`~/.ssh`**: becomes a link to the `dot-ssh` folder in your OneDrive (a link to any other folder is replaced). Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
 6. **`~/.claude`**: Claude Code's folder (settings, `CLAUDE.md`, skills, memory) becomes a link to the `claude` folder in your OneDrive, the same way as `~/.ssh`. `~/.claude.json` (app state and caches) stays on the Mac.
 7. **Git and GitHub**: asks for your name and email, writes the git identity, creates an `id_ed25519` key if there isn't one, logs in to GitHub with `gh` in the browser, and uploads the key to GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
@@ -51,7 +51,7 @@ Options, as environment variables:
 
 | Variable | Effect |
 | --- | --- |
-| `ONEDRIVE_SSH_DIR=name` | Use a different folder in OneDrive instead of `ssh` |
+| `ONEDRIVE_SSH_DIR=name` | Use a different folder in OneDrive instead of `dot-ssh` |
 | `ONEDRIVE_CLAUDE_DIR=name` | Use a different folder in OneDrive instead of `claude` |
 | `DOTFILES_SKIP="onedrive ssh claude github macos debloat"` | Skip any of those steps |
 
@@ -94,6 +94,6 @@ JetBrains Mono 12, Nord colours, and ⌃` toggles a quick terminal from any app 
 
 ## OneDrive: SSH and Claude Code
 
-Keys stay in OneDrive, so every Mac signed in to the same account shares them. In Finder, right-click the OneDrive `ssh` and `claude` folders and choose **Always Keep on This Device** so they are never cloud-only placeholders.
+Keys stay in OneDrive, so every Mac signed in to the same account shares them. In Finder, right-click the OneDrive `dot-ssh` and `claude` folders and choose **Always Keep on This Device** so they are never cloud-only placeholders.
 
 The `claude` folder also holds live session files, so use it from one Mac at a time; two Macs running Claude Code against it at once make OneDrive conflict copies.
