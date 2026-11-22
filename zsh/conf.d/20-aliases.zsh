@@ -54,7 +54,7 @@ if (( $+commands[bat] )); then
   alias cat='bat --paging=auto'  # pages only files longer than the window
 fi
 
-# y: yazi, and when you quit, the shell moves to the folder you were in.
+# y (or finder): yazi, and when you quit, the shell moves to the folder you were in.
 if (( $+commands[yazi] )); then
   y() {
     local tmp cwd
@@ -64,4 +64,5 @@ if (( $+commands[yazi] )); then
     [[ -n "$cwd" && "$cwd" != "$PWD" && -d "$cwd" ]] && builtin cd -- "$cwd"
     command rm -f -- "$tmp"
   }
+  alias finder='y'   # the same, by a friendlier name
 fi

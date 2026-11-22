@@ -52,7 +52,7 @@ Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, .
 | File | What |
 | --- | --- |
 | `10-history` | 50k-line shared history in `~/.local/state/zsh/history` |
-| `20-aliases` | `ls`/`ll`/`lt` (eza), `cat` (bat), `y` (yazi that leaves you in the folder you quit in), `zalias`, `zedit`, `cls` |
+| `20-aliases` | `ls`/`ll`/`lt` (eza), `cat` (bat), `y` or `finder` (yazi that leaves you in the folder you quit in), `zalias`, `zedit`, `cls` |
 | `30-completion` | completion with Homebrew's completions, case-insensitive, menu select |
 | `40-tools` | zoxide as `cd`; fzf on ⌃R history, ⌃T files, ⌥C folders |
 | `85-autosuggest` | history suggestions; → accepts |
