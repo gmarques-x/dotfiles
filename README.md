@@ -29,7 +29,7 @@ The installer runs these steps in order, and is safe to run again; finished step
 4. **Configs**: links them into place (see below).
 5. **`~/.ssh`**: becomes a link to the `dot-ssh` folder in your OneDrive (a link to any other folder is replaced). Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
 6. **`~/.claude`**: Claude Code's folder (settings, `CLAUDE.md`, skills, memory) becomes a link to the `claude` folder in your OneDrive, the same way as `~/.ssh`. `~/.claude.json` (app state and caches) stays on the Mac.
-7. **Git and GitHub**: asks for your name and email, writes the git identity, creates an `id_ed25519` key if there isn't one, logs in to GitHub with `gh` in the browser, and uploads the key to GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
+7. **Git and GitHub**: asks for your name and email, logs in to GitHub with `gh` in the browser, then picks your SSH key: `~/.ssh/id_ed25519` if it exists, otherwise any key in `~/.ssh` that GitHub already has for logging in (pointed at github.com in `~/.ssh/config.d/github`). It creates a new `id_ed25519` only when there's none, and asks first if `~/.ssh` isn't linked to OneDrive. It writes the git identity and makes sure the key is on GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
 8. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies the settings that differ from a fresh Mac:
    - **Appearance**: blue accent, `#434C5E` highlight, scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass

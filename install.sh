@@ -308,10 +308,63 @@ else
   EMAIL="$(ask "Your email for git commits" "$cur_email")"
   [ -n "$NAME" ] && [ -n "$EMAIL" ] || die "git needs a name and an email"
 
-  KEY="$HOME/.ssh/id_ed25519"
-  if [ ! -f "$KEY" ]; then
-    info "No SSH key yet; creating $KEY (choose a passphrase)."
+  # Log in first, so the key choice below can see which keys GitHub already has.
+  if gh auth status -h github.com >/dev/null 2>&1; then
+    ok "GitHub: already logged in"
+    if ! gh auth status -h github.com 2>&1 | grep -q 'admin:ssh_signing_key'; then
+      gh auth refresh -h github.com -s admin:public_key,admin:ssh_signing_key || warn "could not add key scopes"
+    fi
+  else
+    info "Logging in to GitHub in your browser."
+    gh auth login --hostname github.com --git-protocol https --web \
+      --scopes admin:public_key,admin:ssh_signing_key,workflow </dev/tty \
+      || die "gh auth login failed"
+  fi
+  gh config set git_protocol https -h github.com >/dev/null 2>&1 || true
+  keys="$(gh ssh-key list 2>/dev/null || true)"
+
+  # on_github PUBFILE TYPE: is this public key on GitHub as TYPE (authentication/signing)?
+  on_github() {
+    local t b
+    read -r t b _ < "$1" || return 1
+    printf '%s\n' "$keys" | awk -F '\t' -v k="$t $b" -v t="$2" \
+      '{ split($2, a, " "); if (a[1] " " a[2] == k && $5 == t) f = 1 } END { exit !f }'
+  }
+
+  # Use the key you already have: ~/.ssh/id_ed25519, or else any key in ~/.ssh
+  # that GitHub already knows for logging in. Only create one when there is none.
+  KEY=""
+  if [ -f "$HOME/.ssh/id_ed25519" ]; then
+    KEY="$HOME/.ssh/id_ed25519"
+    if [ ! -f "$KEY.pub" ]; then
+      info "Recreating $(pretty "$KEY.pub") from the private key (it may ask for the passphrase)."
+      ssh-keygen -y -f "$KEY" > "$KEY.pub" </dev/tty || die "could not read $KEY"
+    fi
+  else
+    for pub in "$HOME"/.ssh/*.pub; do
+      [ -f "$pub" ] && [ -f "${pub%.pub}" ] || continue
+      if on_github "$pub" authentication; then KEY="${pub%.pub}"; break; fi
+    done
+  fi
+  if [ -n "$KEY" ]; then
+    ok "using your existing SSH key $(pretty "$KEY")"
+  else
+    if [ ! -L "$HOME/.ssh" ]; then
+      warn "~/.ssh isn't linked to OneDrive/$SSH_DIR_NAME, so a key you already have may not be here."
+      case "$(ask "Create a new SSH key anyway? [y/N]")" in
+        [Yy]*) ;;
+        *) die "run install.sh again once OneDrive has synced your $SSH_DIR_NAME folder" ;;
+      esac
+    fi
+    KEY="$HOME/.ssh/id_ed25519"
+    info "No SSH key yet; creating $(pretty "$KEY") (choose a passphrase)."
     ssh-keygen -t ed25519 -C "$EMAIL" -f "$KEY" </dev/tty || die "ssh-keygen failed"
+  fi
+  # ~/.ssh/config offers id_ed25519; point github.com at any other key.
+  if [ "$KEY" != "$HOME/.ssh/id_ed25519" ]; then
+    mkdir -p "$HOME/.ssh/config.d"
+    printf 'Host github.com\n    IdentityFile %s\n    IdentitiesOnly yes\n' "$KEY" > "$HOME/.ssh/config.d/github"
+    ok "github.com uses $(pretty "$KEY") (~/.ssh/config.d/github)"
   fi
   ssh-add --apple-use-keychain "$KEY" </dev/tty 2>/dev/null && ok "key in the agent and Keychain" \
     || warn "could not add the key to the agent; ssh will ask for it on first use"
@@ -327,24 +380,9 @@ else
   if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then backup "$HOME/.gitconfig"; fi
   ok "git identity: $NAME <$EMAIL>, commits signed with your SSH key"
 
-  if gh auth status -h github.com >/dev/null 2>&1; then
-    ok "GitHub: already logged in"
-    if ! gh auth status -h github.com 2>&1 | grep -q 'admin:ssh_signing_key'; then
-      gh auth refresh -h github.com -s admin:public_key,admin:ssh_signing_key || warn "could not add key scopes"
-    fi
-  else
-    info "Logging in to GitHub in your browser."
-    gh auth login --hostname github.com --git-protocol https --web \
-      --scopes admin:public_key,admin:ssh_signing_key,workflow </dev/tty \
-      || die "gh auth login failed"
-  fi
-  gh config set git_protocol https -h github.com >/dev/null 2>&1 || true
-
   title="$(scutil --get ComputerName 2>/dev/null || hostname -s)"
-  keys="$(gh ssh-key list 2>/dev/null || true)"
   for type in authentication signing; do
-    if printf '%s\n' "$keys" | awk -F '\t' -v k="$ktype $kbody" -v t="$type" \
-        '{ split($2, a, " "); if (a[1] " " a[2] == k && $5 == t) f = 1 } END { exit !f }'; then
+    if on_github "$KEY.pub" "$type"; then
       ok "SSH key on GitHub ($type)"
     else
       gh ssh-key add "$KEY.pub" --type "$type" --title "$title" >/dev/null \
