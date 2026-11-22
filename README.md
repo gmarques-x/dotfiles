@@ -17,7 +17,7 @@ The installer runs these steps in order, and is safe to run again; finished step
 
 1. **Homebrew**: installs it if missing (asks for your Mac password).
 2. **OneDrive**: installs it, opens it, and **waits** while you sign in and let it sync. Press Return when the wizard is done.
-3. **Terminal tools and apps**: everything in the [`Brewfile`](Brewfile): Ghostty, Google Chrome, JetBrains Mono, starship, eza, bat, yazi, zoxide, fzf, ripgrep, fd, jq, fastfetch, gh, the zsh plugins, and the AI apps:
+3. **Terminal tools and apps**: everything in the [`Brewfile`](Brewfile): Ghostty, Google Chrome, the JetBrains Mono and SF Pro fonts, starship, eza, bat, yazi, zoxide, fzf, ripgrep, fd, jq, fastfetch, gh, the zsh plugins, and the AI apps:
 
    | | Desktop app | CLI |
    | --- | --- | --- |

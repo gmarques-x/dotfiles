@@ -1,10 +1,13 @@
 # Terminal tools. OneDrive is installed separately by install.sh, before these,
 # so its wizard can run while you wait.
 
-# Terminal, browser and font
+# Terminal and browser
 cask "ghostty"
 cask "google-chrome"
-cask "font-jetbrains-mono"
+
+# Fonts
+cask "font-jetbrains-mono"  # terminal and code
+cask "font-sf-pro"          # Apple SF Pro, Text, Display and Rounded (asks for your Mac password)
 
 # Shell
 brew "git"
