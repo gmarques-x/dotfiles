@@ -32,7 +32,7 @@ The installer runs these steps in order, and is safe to run again; finished step
 
 7. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies the settings that differ from a fresh Mac:
    - **Appearance**: blue accent, `#434C5E` highlight, scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass
-   - **Desktop & Dock**: Dock on the right, small, Scale effect, minimise into the app icon, no indicators or recents, only Ghostty in it (set once); windows grouped by app; no desktop icons or widgets; documents never open as tabs; closing asks to keep changes
+   - **Desktop & Dock**: Dock on the right, small, Scale effect, minimise into the app icon, no indicators or recents, only Ghostty and Chrome in it (set once); windows grouped by app; no desktop icons or widgets; documents never open as tabs; closing asks to keep changes
    - **Accessibility**: Everforest green pointer (`#A7C080`), Live Captions in JetBrains Mono 32
    - **Trackpad**: tap to click, tap-drag, natural scrolling off, App Exposé gesture on, Show Desktop gesture off
 

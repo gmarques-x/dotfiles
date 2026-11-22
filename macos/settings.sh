@@ -32,13 +32,22 @@ w com.apple.WindowManager EnableTiledWindowMargins -bool false          # tiled 
 w com.apple.WindowManager AppWindowGroupingBehavior -int 0              # Stage Manager: one window at a time
 w com.apple.WindowManager AutoHide -bool true                           # Stage Manager: hide recent apps
 
-# Dock apps: just Ghostty. Done once per Mac, so later changes to the Dock stay.
+# Dock apps: Ghostty and Chrome (whichever are installed). Done once per Mac,
+# so later changes to the Dock stay.
+tile() {
+  printf '<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>file://%s/</string><key>_CFURLStringType</key><integer>15</integer></dict></dict><key>tile-type</key><string>file-tile</string></dict>' "${1// /%20}"
+}
 state="$HOME/.local/state/dotfiles"
-if [ ! -f "$state/dock-apps-set" ] && [ -d /Applications/Ghostty.app ]; then
-  w com.apple.dock persistent-apps -array \
-    '<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>file:///Applications/Ghostty.app/</string><key>_CFURLStringType</key><integer>15</integer></dict></dict><key>tile-type</key><string>file-tile</string></dict>'
-  w com.apple.dock persistent-others -array
-  mkdir -p "$state" && date +%F > "$state/dock-apps-set"
+if [ ! -f "$state/dock-apps-set" ]; then
+  tiles=()
+  for app in "/Applications/Ghostty.app" "/Applications/Google Chrome.app"; do
+    [ -d "$app" ] && tiles+=("$(tile "$app")")
+  done
+  if [ "${#tiles[@]}" -gt 0 ]; then
+    w com.apple.dock persistent-apps -array "${tiles[@]}"
+    w com.apple.dock persistent-others -array
+    mkdir -p "$state" && date +%F > "$state/dock-apps-set"
+  fi
 fi
 
 # ---- Trackpad (built-in and Magic Trackpad)
