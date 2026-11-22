@@ -48,6 +48,9 @@ confirm-close-surface = false
 shell-integration = zsh
 shell-integration-features = no-cursor,sudo,title
 
+# Updates come through Homebrew (brew upgrade), so Ghostty doesn't check itself.
+auto-update = off
+
 # Quick terminal: ⌃` from any app (needs Ghostty allowed under Accessibility).
 keybind = global:ctrl+grave_accent=toggle_quick_terminal
 quick-terminal-position = top
