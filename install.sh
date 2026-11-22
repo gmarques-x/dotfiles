@@ -7,17 +7,20 @@
 #      Claude, ChatGPT, Gemini and their CLIs, ...)
 #   4. Links the configs into ~/.config and ~/.zshenv
 #   5. Links ~/.ssh to the "ssh" folder in OneDrive
-#   6. Git identity, GitHub login and SSH keys on GitHub
-#   7. macOS settings (macos/settings.sh)
-#   8. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
+#   6. Links ~/.claude (Claude Code's settings, skills, memory) to the
+#      "claude" folder in OneDrive
+#   7. Git identity, GitHub login and SSH keys on GitHub
+#   8. macOS settings (macos/settings.sh)
+#   9. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
 #      Pages) and GarageBand's sound library to the Trash, after asking
 #
 # Safe to run again: anything already done is skipped. Anything replaced is
 # moved (never deleted) to ~/.local/state/dotfiles/backup/<timestamp>/.
 #
 # Environment overrides:
-#   ONEDRIVE_SSH_DIR   name of the ssh folder inside OneDrive (default: ssh)
-#   DOTFILES_SKIP      space-separated steps to skip: onedrive ssh github macos debloat
+#   ONEDRIVE_SSH_DIR     name of the ssh folder inside OneDrive (default: ssh)
+#   ONEDRIVE_CLAUDE_DIR  name of the Claude Code folder inside OneDrive (default: claude)
+#   DOTFILES_SKIP        space-separated steps to skip: onedrive ssh claude github macos debloat
 
 set -uo pipefail
 
@@ -27,6 +30,7 @@ STATE="$HOME/.local/state/dotfiles"
 BACKUP="$STATE/backup/$(date +%Y%m%d-%H%M%S)"
 CLOUD="$HOME/Library/CloudStorage"
 SSH_DIR_NAME="${ONEDRIVE_SSH_DIR:-ssh}"
+CLAUDE_DIR_NAME="${ONEDRIVE_CLAUDE_DIR:-claude}"
 SKIP=" ${DOTFILES_SKIP:-} "
 
 # ---------------------------------------------------------------- helpers
@@ -92,6 +96,50 @@ onedrive_folders() {
   for d in "$CLOUD"/OneDrive*; do
     [ -d "$d" ] && printf '%s\n' "$d"
   done
+}
+
+# pick_onedrive: set OD to the OneDrive folder to use, asking once if there are
+# several. Returns 1 (OD empty) when there is none.
+OD=""
+pick_onedrive() {
+  [ -n "$OD" ] && return 0
+  local folders count i n d
+  folders="$(onedrive_folders)"
+  count="$(printf '%s' "$folders" | grep -c . || true)"
+  [ "$count" -eq 0 ] && return 1
+  if [ "$count" -eq 1 ]; then
+    OD="$folders"
+  else
+    info "More than one OneDrive folder:"
+    i=0
+    while IFS= read -r d; do i=$((i + 1)); info "  $i  $(pretty "$d")"; done <<<"$folders"
+    n="$(ask "Which one holds your ssh and claude folders?" 1)"
+    OD="$(sed -n "${n}p" <<<"$folders")"
+    [ -n "$OD" ] || die "not a choice: $n"
+  fi
+}
+
+# link_to_onedrive NAME FOLDER: make ~/NAME a symlink to OneDrive/FOLDER.
+# Files only on this Mac are copied across (never overwriting OneDrive's), and
+# the old ~/NAME goes to the backup.
+link_to_onedrive() {
+  local name="$1" target="$OD/$2" home="$HOME/$1"
+  if [ ! -d "$target" ]; then
+    warn "$(pretty "$target") doesn't exist yet; creating it"
+    mkdir -p "$target" || die "could not create $target"
+  fi
+  # Make sure the files are downloaded, not just placeholders.
+  find "$target" -type f -exec cat {} + >/dev/null 2>&1 || true
+  if [ -d "$home" ] && [ ! -L "$home" ]; then
+    cp -Rn "$home/." "$target/" 2>/dev/null \
+      || info "files OneDrive already had were kept; the old ~/$name is in the backup"
+    backup "$home" || die "could not back up ~/$name"
+  elif [ -L "$home" ]; then
+    backup "$home" || die "could not move the old ~/$name link"
+  fi
+  ln -s "$target" "$home" || die "could not link ~/$name"
+  ok "~/$name → $(pretty "$target")"
+  info "${DIM}Tip: in Finder, right-click that folder › Always Keep on This Device.${N}"
 }
 
 # ---------------------------------------------------------------- preflight
@@ -206,42 +254,12 @@ step "~/.ssh → OneDrive/$SSH_DIR_NAME"
 if skip ssh; then
   warn "skipped (DOTFILES_SKIP)"
 else
-  OD=""
-  folders="$(onedrive_folders)"
-  count="$(printf '%s' "$folders" | grep -c . || true)"
   if [ -L "$HOME/.ssh" ] && [ -d "$HOME/.ssh" ]; then
     ok "already linked → $(readlink "$HOME/.ssh" | sed "s|$HOME|~|")"
-  elif [ "$count" -eq 0 ]; then
+  elif ! pick_onedrive; then
     warn "no OneDrive folder found; ~/.ssh stays on this Mac (run again after OneDrive syncs)"
   else
-    if [ "$count" -eq 1 ]; then
-      OD="$folders"
-    else
-      info "More than one OneDrive folder:"
-      i=0
-      while IFS= read -r d; do i=$((i + 1)); info "  $i  $(pretty "$d")"; done <<<"$folders"
-      n="$(ask "Which one holds your ssh folder?" 1)"
-      OD="$(sed -n "${n}p" <<<"$folders")"
-      [ -n "$OD" ] || die "not a choice: $n"
-    fi
-    SSH_TARGET="$OD/$SSH_DIR_NAME"
-    if [ ! -d "$SSH_TARGET" ]; then
-      warn "$(pretty "$SSH_TARGET") doesn't exist yet; creating it"
-      mkdir -p "$SSH_TARGET" || die "could not create $SSH_TARGET"
-    fi
-    # Make sure the files are downloaded, not just placeholders.
-    find "$SSH_TARGET" -type f -exec cat {} + >/dev/null 2>&1 || true
-    if [ -d "$HOME/.ssh" ] && [ ! -L "$HOME/.ssh" ]; then
-      # Bring across anything the OneDrive folder doesn't have yet; never overwrite.
-      cp -Rn "$HOME/.ssh/." "$SSH_TARGET/" 2>/dev/null \
-        || info "files OneDrive already had were kept; the old ~/.ssh is in the backup"
-      backup "$HOME/.ssh" || die "could not back up ~/.ssh"
-    elif [ -L "$HOME/.ssh" ]; then
-      backup "$HOME/.ssh" || die "could not move the old ~/.ssh link"
-    fi
-    ln -s "$SSH_TARGET" "$HOME/.ssh" || die "could not link ~/.ssh"
-    ok "~/.ssh → $(pretty "$SSH_TARGET")"
-    info "${DIM}Tip: in Finder, right-click that folder › Always Keep on This Device.${N}"
+    link_to_onedrive .ssh "$SSH_DIR_NAME"
   fi
 
   [ -d "$HOME/.ssh" ] || mkdir -m 700 "$HOME/.ssh"
@@ -258,7 +276,23 @@ else
   done
 fi
 
-# ---------------------------------------------------------------- 6. Git & GitHub
+# ---------------------------------------------------------------- 6. ~/.claude → OneDrive
+
+# Claude Code's settings, CLAUDE.md, skills and memory. ~/.claude.json (app
+# state and caches, rewritten on every launch) stays on this Mac on purpose.
+step "~/.claude → OneDrive/$CLAUDE_DIR_NAME"
+if skip claude; then
+  warn "skipped (DOTFILES_SKIP)"
+elif [ -L "$HOME/.claude" ] && [ -d "$HOME/.claude" ]; then
+  ok "already linked → $(readlink "$HOME/.claude" | sed "s|$HOME|~|")"
+elif ! pick_onedrive; then
+  warn "no OneDrive folder found; ~/.claude stays on this Mac (run again after OneDrive syncs)"
+else
+  link_to_onedrive .claude "$CLAUDE_DIR_NAME"
+  info "${DIM}Use this folder from one Mac at a time; it holds live session files.${N}"
+fi
+
+# ---------------------------------------------------------------- 7. Git & GitHub
 
 step "Git & GitHub"
 if skip github; then
@@ -317,7 +351,7 @@ else
   done
 fi
 
-# ---------------------------------------------------------------- 7. macOS settings
+# ---------------------------------------------------------------- 8. macOS settings
 
 step "macOS settings (Appearance, Desktop & Dock, Accessibility, Trackpad)"
 if skip macos; then
@@ -330,7 +364,7 @@ else
   fi
 fi
 
-# ---------------------------------------------------------------- 8. Debloat
+# ---------------------------------------------------------------- 9. Debloat
 
 # Only the Apple apps installed from the App Store can go. Safari, Mail, Music,
 # Photos, News, Stocks and the rest live on the sealed, read-only system

@@ -28,9 +28,10 @@ The installer runs these steps in order, and is safe to run again; finished step
    An app that's already in /Applications but wasn't installed by Homebrew (Chrome, Claude, ...) is left alone. Sign in to each app and CLI on first launch.
 4. **Configs**: links them into place (see below).
 5. **`~/.ssh`**: becomes a link to the `ssh` folder in your OneDrive. Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
-6. **Git and GitHub**: asks for your name and email, writes the git identity, creates an `id_ed25519` key if there isn't one, logs in to GitHub with `gh` in the browser, and uploads the key to GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
+6. **`~/.claude`**: Claude Code's folder (settings, `CLAUDE.md`, skills, memory) becomes a link to the `claude` folder in your OneDrive, the same way as `~/.ssh`. `~/.claude.json` (app state and caches) stays on the Mac.
+7. **Git and GitHub**: asks for your name and email, writes the git identity, creates an `id_ed25519` key if there isn't one, logs in to GitHub with `gh` in the browser, and uploads the key to GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
-7. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies the settings that differ from a fresh Mac:
+8. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies the settings that differ from a fresh Mac:
    - **Appearance**: blue accent, `#434C5E` highlight, scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass
    - **Desktop & Dock**: Dock on the right, small, Scale effect, minimise into the app icon, no indicators or recents, only Ghostty and Chrome in it (set once); windows grouped by app; no desktop icons or widgets; documents never open as tabs; closing asks to keep changes
    - **Accessibility**: Everforest green pointer (`#A7C080`), Live Captions in JetBrains Mono 32
@@ -44,14 +45,15 @@ The installer runs these steps in order, and is safe to run again; finished step
 
    Run it on its own with `macos/settings.sh`. Some settings need a log out. If the Accessibility ones report an error, give your terminal Full Disk Access and run it again.
 
-8. **Debloat**: lists whichever of GarageBand, iMovie, Keynote, Numbers and Pages are installed, plus GarageBand's sound library (several GB, kept if Logic Pro is installed), and after you confirm moves them to the Trash. They can be reinstalled from the App Store. The other built-in apps (Safari, Mail, Music, Photos, News, Stocks, ...) are on the read-only system volume, so macOS doesn't let them be removed.
+9. **Debloat**: lists whichever of GarageBand, iMovie, Keynote, Numbers and Pages are installed, plus GarageBand's sound library (several GB, kept if Logic Pro is installed), and after you confirm moves them to the Trash. They can be reinstalled from the App Store. The other built-in apps (Safari, Mail, Music, Photos, News, Stocks, ...) are on the read-only system volume, so macOS doesn't let them be removed.
 
 Options, as environment variables:
 
 | Variable | Effect |
 | --- | --- |
 | `ONEDRIVE_SSH_DIR=name` | Use a different folder in OneDrive instead of `ssh` |
-| `DOTFILES_SKIP="onedrive ssh github macos debloat"` | Skip any of those steps |
+| `ONEDRIVE_CLAUDE_DIR=name` | Use a different folder in OneDrive instead of `claude` |
+| `DOTFILES_SKIP="onedrive ssh claude github macos debloat"` | Skip any of those steps |
 
 ## What goes where
 
@@ -67,7 +69,7 @@ Options, as environment variables:
 
 Because the configs are links, editing a file in `~/.config` edits the repo. Commit from here.
 
-Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, ...) is moved to `~/.local/state/dotfiles/backup/<timestamp>/`, never deleted. `git/local` and `git/allowed_signers` are generated per Mac and not tracked.
+Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, `~/.claude`, ...) is moved to `~/.local/state/dotfiles/backup/<timestamp>/`, never deleted. `git/local` and `git/allowed_signers` are generated per Mac and not tracked.
 
 ## zsh
 
@@ -90,6 +92,8 @@ Put machine-specific settings in `zsh/conf.d/local.zsh`; git ignores it.
 
 JetBrains Mono 12, Nord colours, and ⌃` toggles a quick terminal from any app (allow Ghostty under System Settings › Privacy & Security › Accessibility). Left ⌥ acts as Alt.
 
-## OneDrive and SSH
+## OneDrive: SSH and Claude Code
 
-Keys stay in OneDrive, so every Mac signed in to the same account shares them. In Finder, right-click the OneDrive `ssh` folder and choose **Always Keep on This Device** so the keys are never cloud-only placeholders.
+Keys stay in OneDrive, so every Mac signed in to the same account shares them. In Finder, right-click the OneDrive `ssh` and `claude` folders and choose **Always Keep on This Device** so they are never cloud-only placeholders.
+
+The `claude` folder also holds live session files, so use it from one Mac at a time; two Macs running Claude Code against it at once make OneDrive conflict copies.
