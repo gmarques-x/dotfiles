@@ -189,6 +189,7 @@ link "$DOTFILES/eza"                          "$CONFIG/eza"
 link "$DOTFILES/bat"                          "$CONFIG/bat"
 link "$DOTFILES/yazi"                         "$CONFIG/yazi"
 link "$DOTFILES/git"                          "$CONFIG/git"
+link "$DOTFILES/fastfetch"                    "$CONFIG/fastfetch"
 
 # zsh reads ~/.zprofile and ~/.zshrc only without ZDOTDIR; ours live in ~/.config/zsh.
 for f in .zprofile .zshrc .zlogin; do

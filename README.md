@@ -61,7 +61,7 @@ Options, as environment variables:
 | `zsh/` | `~/.config/zsh` |
 | `ghostty/` | `~/.config/ghostty` |
 | `starship/starship.toml`, `starship-plain.toml` | `~/.config/starship.toml`, `~/.config/starship-plain.toml` |
-| `eza/`, `bat/`, `yazi/` | `~/.config/eza`, `~/.config/bat`, `~/.config/yazi` |
+| `eza/`, `bat/`, `yazi/`, `fastfetch/` | `~/.config/eza`, `~/.config/bat`, `~/.config/yazi`, `~/.config/fastfetch` |
 | `git/` | `~/.config/git` |
 | `ssh/config` | copied to `~/.ssh/config` only if there isn't one |
 
@@ -81,7 +81,7 @@ Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, .
 | `40-tools` | zoxide as `cd`; fzf on ⌃R history, ⌃T files, ⌥C folders |
 | `85-autosuggest` | history suggestions; → accepts |
 | `90-prompt` | starship (icon-free version in Terminal.app) |
-| `95-fetch` | fastfetch once per new window (`DOTFILES_NO_FETCH=1` turns it off) |
+| `95-fetch` | fastfetch once per new window, with a dotted ghost for a logo (`DOTFILES_NO_FETCH=1` turns it off) |
 | `98-highlight` | syntax highlighting |
 
 Put machine-specific settings in `zsh/conf.d/local.zsh`; git ignores it.
