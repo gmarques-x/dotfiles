@@ -56,7 +56,7 @@ w com.apple.dock showAppExposeGestureEnabled -bool true                 # App Ex
 # ---- Accessibility (the terminal may need Full Disk Access for these)
 ua=com.apple.universalaccess
 w $ua cursorIsCustomized -bool true
-w $ua cursorFill -dict red -float 0.513725 green -float 0.752941 blue -float 0.572549 alpha -float 1
+w $ua cursorFill -dict red -float 0.654902 green -float 0.752941 blue -float 0.501961 alpha -float 1   # Everforest green #A7C080
 w $ua cursorOutline -dict red -float 0 green -float 0 blue -float 0 alpha -float 1
 w $ua systemTranscriptionTranscriptionViewFont -dict fontName -string "JetBrains Mono" fontSize -int 32  # Live Captions
 
