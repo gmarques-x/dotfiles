@@ -1,8 +1,9 @@
 # Terminal tools. OneDrive is installed separately by install.sh, before these,
 # so its wizard can run while you wait.
 
-# Terminal and font
+# Terminal, browser and font
 cask "ghostty"
+cask "google-chrome"
 cask "font-jetbrains-mono"
 
 # Shell

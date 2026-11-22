@@ -159,7 +159,7 @@ step "Terminal tools and apps (Brewfile)"
 # An app installed outside Homebrew (dragged in, or from its own installer)
 # makes `brew install --cask` fail, so those casks are skipped and left alone.
 skip_casks=""
-for pair in claude:Claude chatgpt:ChatGPT google-gemini:Gemini ghostty:Ghostty; do
+for pair in claude:Claude chatgpt:ChatGPT google-gemini:Gemini ghostty:Ghostty "google-chrome:Google Chrome"; do
   cask="${pair%%:*}" app="${pair#*:}"
   if [ -d "/Applications/$app.app" ] && ! "$BREW" list --cask "$cask" >/dev/null 2>&1; then
     skip_casks="$skip_casks $cask"
