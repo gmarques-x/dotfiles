@@ -4,7 +4,8 @@
 # safe to run on its own and again. Some take effect only after logging out.
 
 set -uo pipefail
-w() { defaults write "$@" || printf '    ! could not set %s %s\n' "$1" "$2" >&2; }
+failed=0
+w() { defaults write "$@" 2>/dev/null || { printf '    ! could not set %s %s\n' "$1" "$2" >&2; failed=1; }; }
 
 # ---- Appearance
 w NSGlobalDomain AppleAccentColor -int 4                                # accent: blue
@@ -62,12 +63,25 @@ w NSGlobalDomain com.apple.swipescrolldirection -bool false             # natura
 w com.apple.dock showDesktopGestureEnabled -bool false                  # spread thumb and fingers: off
 w com.apple.dock showAppExposeGestureEnabled -bool true                 # App Exposé: swipe down
 
-# ---- Accessibility (the terminal may need Full Disk Access for these)
+# ---- Accessibility
+# macOS lets only apps with Full Disk Access write this domain, so check once
+# and say how to fix it rather than failing on every key.
 ua=com.apple.universalaccess
-w $ua cursorIsCustomized -bool true
-w $ua cursorFill -dict red -float 0.654902 green -float 0.752941 blue -float 0.501961 alpha -float 1   # Everforest green #A7C080
-w $ua cursorOutline -dict red -float 0 green -float 0 blue -float 0 alpha -float 1
-w $ua systemTranscriptionTranscriptionViewFont -dict fontName -string "JetBrains Mono" fontSize -int 32  # Live Captions
+if defaults write $ua dotfilesWriteProbe -bool true 2>/dev/null; then
+  defaults delete $ua dotfilesWriteProbe 2>/dev/null
+  w $ua cursorIsCustomized -bool true
+  w $ua cursorFill -dict red -float 0.654902 green -float 0.752941 blue -float 0.501961 alpha -float 1   # Everforest green #A7C080
+  w $ua cursorOutline -dict red -float 0 green -float 0 blue -float 0 alpha -float 1
+  w $ua systemTranscriptionTranscriptionViewFont -dict fontName -string "JetBrains Mono" fontSize -int 32  # Live Captions
+else
+  failed=1
+  printf '    ! skipped Accessibility (pointer colour, Live Captions font): this terminal needs Full Disk Access.\n' >&2
+  printf '      Turn it on in System Settings > Privacy & Security > Full Disk Access, quit and reopen\n' >&2
+  printf '      the terminal, then run: %s\n' "$0" >&2
+  open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles" 2>/dev/null || true
+fi
 
 # Restart what reads these.
 killall Dock SystemUIServer cfprefsd 2>/dev/null || true
+
+exit "$failed"

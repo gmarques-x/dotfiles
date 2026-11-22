@@ -320,7 +320,11 @@ step "macOS settings (Appearance, Desktop & Dock, Accessibility, Trackpad)"
 if skip macos; then
   warn "skipped (DOTFILES_SKIP)"
 else
-  "$DOTFILES/macos/settings.sh" && ok "applied (some need a log out to take full effect)"
+  if "$DOTFILES/macos/settings.sh"; then
+    ok "applied (some need a log out to take full effect)"
+  else
+    warn "applied, except the ones above (some need a log out to take full effect)"
+  fi
 fi
 
 # ---------------------------------------------------------------- done
