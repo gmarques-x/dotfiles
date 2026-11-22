@@ -8,13 +8,14 @@
 #   4. Links the configs into ~/.config and ~/.zshenv
 #   5. Links ~/.ssh to the "ssh" folder in OneDrive
 #   6. Git identity, GitHub login and SSH keys on GitHub
+#   7. macOS settings (macos/settings.sh)
 #
 # Safe to run again: anything already done is skipped. Anything replaced is
 # moved (never deleted) to ~/.local/state/dotfiles/backup/<timestamp>/.
 #
 # Environment overrides:
 #   ONEDRIVE_SSH_DIR   name of the ssh folder inside OneDrive (default: ssh)
-#   DOTFILES_SKIP      space-separated steps to skip, e.g. "onedrive github"
+#   DOTFILES_SKIP      space-separated steps to skip: onedrive ssh github macos
 
 set -uo pipefail
 
@@ -311,6 +312,15 @@ else
         || warn "could not upload the SSH key ($type)"
     fi
   done
+fi
+
+# ---------------------------------------------------------------- 7. macOS settings
+
+step "macOS settings (Appearance, Desktop & Dock, Accessibility, Trackpad)"
+if skip macos; then
+  warn "skipped (DOTFILES_SKIP)"
+else
+  "$DOTFILES/macos/settings.sh" && ok "applied (some need a log out to take full effect)"
 fi
 
 # ---------------------------------------------------------------- done

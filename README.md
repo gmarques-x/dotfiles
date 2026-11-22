@@ -30,12 +30,20 @@ The installer runs these steps in order, and is safe to run again; finished step
 5. **`~/.ssh`**: becomes a link to the `ssh` folder in your OneDrive. Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
 6. **Git and GitHub**: asks for your name and email, writes the git identity, creates an `id_ed25519` key if there isn't one, logs in to GitHub with `gh` in the browser, and uploads the key to GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
+7. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies the settings that differ from a fresh Mac:
+   - **Appearance**: blue accent, `#434C5E` highlight, scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass
+   - **Desktop & Dock**: Dock on the right, small, Scale effect, minimise into the app icon, no indicators or recents, only Ghostty in it (set once); windows grouped by app; no desktop icons or widgets; documents never open as tabs; closing asks to keep changes
+   - **Accessibility**: custom pointer colour, Live Captions in JetBrains Mono 32
+   - **Trackpad**: tap to click, tap-drag, natural scrolling off, App Exposé gesture on, Show Desktop gesture off
+
+   Run it on its own with `macos/settings.sh`. Some settings need a log out. If the Accessibility ones report an error, give your terminal Full Disk Access and run it again.
+
 Options, as environment variables:
 
 | Variable | Effect |
 | --- | --- |
 | `ONEDRIVE_SSH_DIR=name` | Use a different folder in OneDrive instead of `ssh` |
-| `DOTFILES_SKIP="onedrive ssh github"` | Skip any of those steps |
+| `DOTFILES_SKIP="onedrive ssh github macos"` | Skip any of those steps |
 
 ## What goes where
 
