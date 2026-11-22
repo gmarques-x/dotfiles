@@ -35,6 +35,12 @@ The installer runs these steps in order, and is safe to run again; finished step
    - **Desktop & Dock**: Dock on the right, small, Scale effect, minimise into the app icon, no indicators or recents, only Ghostty and Chrome in it (set once); windows grouped by app; no desktop icons or widgets; documents never open as tabs; closing asks to keep changes
    - **Accessibility**: Everforest green pointer (`#A7C080`), Live Captions in JetBrains Mono 32
    - **Trackpad**: tap to click, tap-drag, natural scrolling off, App Exposé gesture on, Show Desktop gesture off
+   - **Control Center and menu bar**: battery percentage on, Energy Mode, Timer, Spotlight and Siri AI not in the menu bar, iPhone Live Activities on but not on the lock screen
+   - **Spotlight and Siri**: results only from apps, files, folders, menu items, OneDrive and related content; "Help Apple improve Search" off
+   - **Finder**: all filename extensions, folders on top (windows and desktop), no disks on the desktop, new windows open your home folder, search the current folder, Trash emptied after 30 days without a warning, no tag tint on folders, small sidebar icons, toolbar without Group and Tags
+   - **Screenshots**: saved to a file, not the clipboard
+   - **Battery**: display turns off after 10 minutes on battery (asks for your password when it changes it)
+   - **Displays**: built-in display at "More Space", 1920 × 1243 (with `displayplacer` from the Brewfile)
 
    Run it on its own with `macos/settings.sh`. Some settings need a log out. If the Accessibility ones report an error, give your terminal Full Disk Access and run it again.
 

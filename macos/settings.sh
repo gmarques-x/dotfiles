@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# macOS settings: the ones that differ from a fresh Mac, in System Settings'
-# Appearance, Desktop & Dock, Accessibility and Trackpad. Run by install.sh;
-# safe to run on its own and again. Some take effect only after logging out.
+# macOS settings: the ones that differ from a fresh Mac, in System Settings
+# (Appearance, Desktop & Dock, Control Center, Spotlight, Battery, Displays,
+# Accessibility, Trackpad), Finder and screenshots. Run by install.sh; safe to
+# run on its own and again. Some take effect only after logging out.
 
 set -uo pipefail
 failed=0
 w() { defaults write "$@" 2>/dev/null || { printf '    ! could not set %s %s\n' "$1" "$2" >&2; failed=1; }; }
+wh() { defaults -currentHost write "$@" 2>/dev/null || { printf '    ! could not set %s %s (this Mac)\n' "$1" "$2" >&2; failed=1; }; }
 
 # ---- Appearance
 w NSGlobalDomain AppleAccentColor -int 4                                # accent: blue
@@ -13,6 +15,7 @@ w NSGlobalDomain AppleHighlightColor -string "0.262745 0.298039 0.368627 Other" 
 w NSGlobalDomain AppleShowScrollBars -string WhenScrolling              # scroll bars: when scrolling
 w NSGlobalDomain AppleReduceDesktopTinting -bool true                   # wallpaper tinting in windows: off
 w NSGlobalDomain NSGlassTintAmount -int 1                               # Liquid Glass: tinted
+w NSGlobalDomain NSTableViewDefaultSizeMode -int 1                      # sidebar icon size: small
 
 # ---- Desktop & Dock
 w com.apple.dock orientation -string right
@@ -51,6 +54,72 @@ if [ ! -f "$state/dock-apps-set" ]; then
   fi
 fi
 
+# ---- Control Center and menu bar
+wh com.apple.controlcenter BatteryShowPercentage -bool true             # battery: show percentage
+wh com.apple.controlcenter BatteryShowEnergyMode -int 0                 # battery: don't show Energy Mode
+wh com.apple.controlcenter Timer -int 8                                 # timer: don't show in menu bar
+wh com.apple.controlcenter Spotlight -int 8                             # Spotlight: don't show in menu bar
+wh com.apple.Spotlight MenuItemHidden -bool true
+wh com.apple.controlcenter ShowSuggestions -bool true
+w com.apple.controlcenter RemoteLiveActivitiesEnabled -bool true        # iPhone Live Activities: on
+w com.apple.controlcenter ShowLiveActivitiesAtLockScreen -bool false    # ... but not on the lock screen
+defaults delete com.apple.campo "NSStatusItem VisibleCC Item-0" 2>/dev/null || true   # Siri AI: not in menu bar
+
+# ---- Spotlight and Siri
+# Search results: apps, files, folders, menu items, OneDrive, related content.
+w com.apple.Spotlight EnabledPreferenceRules -array Custom.relatedContents \
+  "FileProvider.com.microsoft.OneDrive.FileProvider/OneDrive" System.files System.folders \
+  System.iphoneApps System.menuItems
+w com.apple.assistant.support "Search Queries Data Sharing Status" -int 2   # help Apple improve Search: off
+
+# ---- Finder
+w NSGlobalDomain AppleShowAllExtensions -bool true                      # show all filename extensions
+w NSGlobalDomain AppleDisableTagBasedIconTinting -bool true             # don't tint folders with tag colours
+w com.apple.finder NewWindowTarget -string PfHm                         # new windows: home folder
+w com.apple.finder FXDefaultSearchScope -string SCcf                    # search the current folder
+w com.apple.finder _FXSortFoldersFirst -bool true                       # folders on top: in windows
+w com.apple.finder _FXSortFoldersFirstOnDesktop -bool true              # ... and on the desktop
+w com.apple.finder ShowExternalHardDrivesOnDesktop -bool false
+w com.apple.finder ShowRemovableMediaOnDesktop -bool false
+w com.apple.finder FXRemoveOldTrashItems -bool true                     # empty Trash items after 30 days
+w com.apple.finder WarnOnEmptyTrash -bool false
+# Toolbar: Back, View, Share, Action, Search (no Group or Tags).
+w com.apple.finder "NSToolbar Configuration Browser" '<dict>
+  <key>TB Display Mode</key><integer>2</integer>
+  <key>TB Icon Size Mode</key><integer>1</integer>
+  <key>TB Is Shown</key><true/>
+  <key>TB Size Mode</key><integer>1</integer>
+  <key>TB Item Identifiers</key><array>
+    <string>com.apple.finder.BACK</string><string>com.apple.finder.SWCH</string>
+    <string>NSToolbarSpaceItem</string><string>com.apple.finder.SHAR</string>
+    <string>com.apple.finder.ACTN</string><string>NSToolbarSpaceItem</string>
+    <string>com.apple.finder.SRCH</string>
+  </array>
+</dict>'
+
+# ---- Screenshots
+w com.apple.screencapture target-screenshot -string file                # save to a file, not the clipboard
+w com.apple.screencapture target-screenrecording -string file
+
+# ---- Battery: turn the display off after 10 minutes on battery too.
+# Changing it asks for your password, so only when it differs.
+battery_displaysleep() { pmset -g custom | awk '/^Battery Power/{b=1} /^AC Power/{b=0} b && $1=="displaysleep"{print $2}'; }
+if [ "$(battery_displaysleep)" != 10 ]; then
+  sudo pmset -b displaysleep 10 || { printf '    ! could not set the battery display sleep\n' >&2; failed=1; }
+fi
+
+# ---- Displays: built-in display at "More Space" (1920 × 1243), via displayplacer.
+if command -v displayplacer >/dev/null; then
+  builtin_id="$(displayplacer list | awk '/^Persistent screen id:/{id=$4} /^Type:.*built in/{print id; exit}')"
+  if [ -n "$builtin_id" ]; then
+    displayplacer "id:$builtin_id res:1920x1243 scaling:on" >/dev/null 2>&1 \
+      || { printf '    ! could not set the built-in display to 1920 x 1243\n' >&2; failed=1; }
+  fi
+else
+  printf '    ! skipped the display resolution: displayplacer is not installed (brew install displayplacer)\n' >&2
+  failed=1
+fi
+
 # ---- Trackpad (built-in and Magic Trackpad)
 for d in com.apple.AppleMultitouchTrackpad com.apple.driver.AppleBluetoothMultitouch.trackpad; do
   w "$d" Clicking -bool true                                            # tap to click
@@ -82,6 +151,6 @@ else
 fi
 
 # Restart what reads these.
-killall Dock SystemUIServer cfprefsd 2>/dev/null || true
+killall Dock Finder ControlCenter SystemUIServer cfprefsd 2>/dev/null || true
 
 exit "$failed"

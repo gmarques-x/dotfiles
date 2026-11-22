@@ -26,6 +26,7 @@ brew "ripgrep"   # grep
 brew "fd"        # find
 brew "jq"
 brew "fastfetch"
+brew "displayplacer"  # sets the display resolution (macos/settings.sh)
 
 # yazi file manager and its preview helpers
 brew "yazi"
