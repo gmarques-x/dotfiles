@@ -1,0 +1,38 @@
+# One-line prompt: a bar of blocks (user, folder, git, time) joined by arrows,
+# with rounded ends, then ❯. Nord colours. Terminal.app uses starship-plain.toml.
+add_newline = true
+format = """[](fg:#88C0D0)$username$directory[](fg:#A3BE8C bg:#EBCB8B)$git_branch$git_status[](fg:#EBCB8B bg:#D08770)$time[](fg:#D08770) $character"""
+
+[username]
+show_always = true
+style_user = "bg:#88C0D0 fg:#2E3440"
+style_root = "bg:#88C0D0 fg:#2E3440"
+format = "[  $user ]($style)"
+
+[directory]
+style = "bg:#A3BE8C fg:#2E3440"
+read_only_style = "bg:#A3BE8C fg:#2E3440"
+read_only = " 󰌾"
+format = "[](fg:#88C0D0 bg:#A3BE8C)[ $path]($style)[$read_only]($read_only_style)[ ]($style)"
+
+[git_branch]
+style = "bg:#EBCB8B fg:#2E3440"
+symbol = " "
+format = "[ $symbol$branch ]($style)"
+
+[git_status]
+style = "bg:#EBCB8B fg:#2E3440"
+untracked = "?"
+modified = "!"
+staged = "+"
+format = "([$all_status$ahead_behind ]($style))"
+
+[time]
+disabled = false
+style = "bg:#D08770 fg:#2E3440"
+time_format = "%H:%M"
+format = "[  $time ]($style)"
+
+[character]
+success_symbol = "[❯](fg:#D8DEE9)"
+error_symbol = "[❯](fg:#BF616A)"

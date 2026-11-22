@@ -1,0 +1,311 @@
+#!/usr/bin/env bash
+# dotfiles installer for macOS.
+#
+#   1. Homebrew
+#   2. OneDrive (then waits while you finish its setup wizard)
+#   3. Terminal tools from the Brewfile (Ghostty, eza, yazi, starship, ...)
+#   4. Links the configs into ~/.config and ~/.zshenv
+#   5. Links ~/.ssh to the "ssh" folder in OneDrive
+#   6. Git identity, GitHub login and SSH keys on GitHub
+#
+# Safe to run again: anything already done is skipped. Anything replaced is
+# moved (never deleted) to ~/.local/state/dotfiles/backup/<timestamp>/.
+#
+# Environment overrides:
+#   ONEDRIVE_SSH_DIR   name of the ssh folder inside OneDrive (default: ssh)
+#   DOTFILES_SKIP      space-separated steps to skip, e.g. "onedrive github"
+
+set -uo pipefail
+
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
+STATE="$HOME/.local/state/dotfiles"
+BACKUP="$STATE/backup/$(date +%Y%m%d-%H%M%S)"
+CLOUD="$HOME/Library/CloudStorage"
+SSH_DIR_NAME="${ONEDRIVE_SSH_DIR:-ssh}"
+SKIP=" ${DOTFILES_SKIP:-} "
+
+# ---------------------------------------------------------------- helpers
+
+if [ -t 1 ]; then
+  B=$'\033[1m' DIM=$'\033[2m' G=$'\033[32m' Y=$'\033[33m' R=$'\033[31m' C=$'\033[36m' N=$'\033[0m'
+else
+  B="" DIM="" G="" Y="" R="" C="" N=""
+fi
+
+step() { printf '\n%s==> %s%s\n' "$B$C" "$1" "$N"; }
+info() { printf '    %s\n' "$1"; }
+ok()   { printf '    %s✓%s %s\n' "$G" "$N" "$1"; }
+warn() { printf '    %s!%s %s\n' "$Y" "$N" "$1"; }
+die()  { printf '\n%s✗ %s%s\n' "$R" "$1" "$N" >&2; exit 1; }
+pretty() { printf '%s' "${1/#"$HOME"/\~}"; }
+skip() { case "$SKIP" in *" $1 "*) return 0 ;; esac; return 1; }
+
+# ask PROMPT [DEFAULT]: read an answer from the terminal (works under curl | bash).
+ask() {
+  local prompt="$1" def="${2-}" ans
+  if [ -n "$def" ]; then
+    printf '    %s %s[%s]%s: ' "$prompt" "$DIM" "$def" "$N" >/dev/tty
+  else
+    printf '    %s: ' "$prompt" >/dev/tty
+  fi
+  IFS= read -r ans </dev/tty || ans=""
+  printf '%s' "${ans:-$def}"
+}
+
+pause() {
+  printf '\n    %s%s%s ' "$B" "$1" "$N" >/dev/tty
+  IFS= read -r REPLY </dev/tty || REPLY=""
+}
+
+# backup PATH: move PATH into this run's backup folder, keeping its place under $HOME.
+backup() {
+  local src="$1" rel dest
+  rel="${src#"$HOME"/}"
+  dest="$BACKUP/$rel"
+  mkdir -p "$(dirname "$dest")" || return 1
+  mv "$src" "$dest" || return 1
+  info "${DIM}backed up ~/$rel → $(pretty "$dest")${N}"
+}
+
+# link SRC DEST: make DEST a symlink to SRC, backing up whatever was there.
+link() {
+  local src="$1" dest="$2"
+  if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then
+    ok "$(pretty "$dest")"
+    return 0
+  fi
+  mkdir -p "$(dirname "$dest")"
+  if [ -e "$dest" ] || [ -L "$dest" ]; then
+    backup "$dest" || die "could not back up $dest"
+  fi
+  ln -s "$src" "$dest" || die "could not link $dest"
+  ok "$(pretty "$dest") → $(pretty "$src")"
+}
+
+onedrive_folders() {
+  local d
+  for d in "$CLOUD"/OneDrive*; do
+    [ -d "$d" ] && printf '%s\n' "$d"
+  done
+}
+
+# ---------------------------------------------------------------- preflight
+
+[ "$(uname -s)" = "Darwin" ] || die "this installer is for macOS"
+[ "$(id -u)" -ne 0 ] || die "run this as yourself, not with sudo"
+
+printf '%sdotfiles%s  %s\n' "$B" "$N" "$(pretty "$DOTFILES")"
+
+# ---------------------------------------------------------------- 1. Homebrew
+
+step "Homebrew"
+if [ -x /opt/homebrew/bin/brew ]; then
+  BREW=/opt/homebrew/bin/brew
+elif [ -x /usr/local/bin/brew ]; then
+  BREW=/usr/local/bin/brew
+else
+  BREW=""
+fi
+if [ -n "$BREW" ]; then
+  ok "already installed"
+else
+  info "Installing Homebrew (it asks for your Mac password and installs the Command Line Tools)."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/tty \
+    || die "Homebrew install failed"
+  if [ -x /opt/homebrew/bin/brew ]; then BREW=/opt/homebrew/bin/brew; else BREW=/usr/local/bin/brew; fi
+  ok "installed"
+fi
+eval "$("$BREW" shellenv)"
+
+# ---------------------------------------------------------------- 2. OneDrive
+
+step "OneDrive"
+if skip onedrive; then
+  warn "skipped (DOTFILES_SKIP)"
+else
+  if [ -d /Applications/OneDrive.app ]; then
+    ok "already installed"
+  else
+    "$BREW" install --cask onedrive || die "could not install OneDrive"
+    ok "installed"
+  fi
+  if [ -n "$(onedrive_folders)" ] && [ -f "$STATE/onedrive-done" ]; then
+    ok "already set up"
+  else
+    open -a OneDrive || warn "could not open OneDrive; open it from Applications"
+    info "OneDrive is opening. In its wizard:"
+    info "  • sign in"
+    info "  • let your OneDrive folder finish syncing (your ssh folder must be downloaded)"
+    info "  • optionally turn on Desktop and Documents backup"
+    while :; do
+      pause "Press Return when the OneDrive wizard is finished (or type skip):"
+      case "$REPLY" in skip|SKIP|Skip) warn "skipped; ~/.ssh will not be linked"; break ;; esac
+      if [ -n "$(onedrive_folders)" ]; then
+        mkdir -p "$STATE" && date +%F > "$STATE/onedrive-done"
+        ok "OneDrive folder found: $(onedrive_folders | head -1 | sed "s|$HOME|~|")"
+        break
+      fi
+      warn "no OneDrive folder in ~/Library/CloudStorage yet; give it a moment"
+    done
+  fi
+fi
+
+# ---------------------------------------------------------------- 3. Tools
+
+step "Terminal tools (Brewfile)"
+if "$BREW" bundle check --file="$DOTFILES/Brewfile" >/dev/null 2>&1; then
+  ok "everything installed"
+else
+  "$BREW" bundle --file="$DOTFILES/Brewfile" || die "brew bundle failed"
+  ok "installed"
+fi
+
+# ---------------------------------------------------------------- 4. Configs
+
+step "Configs"
+mkdir -p "$CONFIG"
+link "$DOTFILES/zsh/.zshenv"                  "$HOME/.zshenv"
+link "$DOTFILES/zsh"                          "$CONFIG/zsh"
+link "$DOTFILES/ghostty"                      "$CONFIG/ghostty"
+link "$DOTFILES/starship/starship.toml"       "$CONFIG/starship.toml"
+link "$DOTFILES/starship/starship-plain.toml" "$CONFIG/starship-plain.toml"
+link "$DOTFILES/eza"                          "$CONFIG/eza"
+link "$DOTFILES/bat"                          "$CONFIG/bat"
+link "$DOTFILES/yazi"                         "$CONFIG/yazi"
+link "$DOTFILES/git"                          "$CONFIG/git"
+
+# zsh reads ~/.zprofile and ~/.zshrc only without ZDOTDIR; ours live in ~/.config/zsh.
+for f in .zprofile .zshrc .zlogin; do
+  if [ -e "$HOME/$f" ] || [ -L "$HOME/$f" ]; then backup "$HOME/$f"; fi
+done
+# Ghostty prefers this file over ~/.config/ghostty/config when it exists.
+GHOSTTY_APP_SUPPORT="$HOME/Library/Application Support/com.mitchellh.ghostty/config"
+if [ -f "$GHOSTTY_APP_SUPPORT" ] && [ ! -L "$GHOSTTY_APP_SUPPORT" ]; then backup "$GHOSTTY_APP_SUPPORT"; fi
+mkdir -p "$HOME/.local/state/zsh" "$HOME/.cache/zsh"
+
+# ---------------------------------------------------------------- 5. ~/.ssh → OneDrive
+
+step "~/.ssh → OneDrive/$SSH_DIR_NAME"
+if skip ssh; then
+  warn "skipped (DOTFILES_SKIP)"
+else
+  OD=""
+  folders="$(onedrive_folders)"
+  count="$(printf '%s' "$folders" | grep -c . || true)"
+  if [ -L "$HOME/.ssh" ] && [ -d "$HOME/.ssh" ]; then
+    ok "already linked → $(readlink "$HOME/.ssh" | sed "s|$HOME|~|")"
+  elif [ "$count" -eq 0 ]; then
+    warn "no OneDrive folder found; ~/.ssh stays on this Mac (run again after OneDrive syncs)"
+  else
+    if [ "$count" -eq 1 ]; then
+      OD="$folders"
+    else
+      info "More than one OneDrive folder:"
+      i=0
+      while IFS= read -r d; do i=$((i + 1)); info "  $i  $(pretty "$d")"; done <<<"$folders"
+      n="$(ask "Which one holds your ssh folder?" 1)"
+      OD="$(sed -n "${n}p" <<<"$folders")"
+      [ -n "$OD" ] || die "not a choice: $n"
+    fi
+    SSH_TARGET="$OD/$SSH_DIR_NAME"
+    if [ ! -d "$SSH_TARGET" ]; then
+      warn "$(pretty "$SSH_TARGET") doesn't exist yet; creating it"
+      mkdir -p "$SSH_TARGET" || die "could not create $SSH_TARGET"
+    fi
+    # Make sure the files are downloaded, not just placeholders.
+    find "$SSH_TARGET" -type f -exec cat {} + >/dev/null 2>&1 || true
+    if [ -d "$HOME/.ssh" ] && [ ! -L "$HOME/.ssh" ]; then
+      # Bring across anything the OneDrive folder doesn't have yet; never overwrite.
+      cp -Rn "$HOME/.ssh/." "$SSH_TARGET/" 2>/dev/null \
+        || info "files OneDrive already had were kept; the old ~/.ssh is in the backup"
+      backup "$HOME/.ssh" || die "could not back up ~/.ssh"
+    elif [ -L "$HOME/.ssh" ]; then
+      backup "$HOME/.ssh" || die "could not move the old ~/.ssh link"
+    fi
+    ln -s "$SSH_TARGET" "$HOME/.ssh" || die "could not link ~/.ssh"
+    ok "~/.ssh → $(pretty "$SSH_TARGET")"
+    info "${DIM}Tip: in Finder, right-click that folder › Always Keep on This Device.${N}"
+  fi
+
+  [ -d "$HOME/.ssh" ] || mkdir -m 700 "$HOME/.ssh"
+  chmod 700 "$HOME/.ssh/" 2>/dev/null || true
+  if [ ! -f "$HOME/.ssh/config" ]; then
+    cp "$DOTFILES/ssh/config" "$HOME/.ssh/config" && chmod 600 "$HOME/.ssh/config"
+    ok "added ssh config"
+  else
+    ok "ssh config present"
+  fi
+  mkdir -p "$HOME/.ssh/config.d"
+  for k in "$HOME"/.ssh/id_*; do
+    [ -f "$k" ] && case "$k" in *.pub) ;; *) chmod 600 "$k" ;; esac
+  done
+fi
+
+# ---------------------------------------------------------------- 6. Git & GitHub
+
+step "Git & GitHub"
+if skip github; then
+  warn "skipped (DOTFILES_SKIP)"
+else
+  LOCAL="$DOTFILES/git/local"
+  cur_name="$(git config -f "$LOCAL" user.name 2>/dev/null || true)"
+  cur_email="$(git config -f "$LOCAL" user.email 2>/dev/null || true)"
+  NAME="$(ask "Your name for git commits" "$cur_name")"
+  EMAIL="$(ask "Your email for git commits" "$cur_email")"
+  [ -n "$NAME" ] && [ -n "$EMAIL" ] || die "git needs a name and an email"
+
+  KEY="$HOME/.ssh/id_ed25519"
+  if [ ! -f "$KEY" ]; then
+    info "No SSH key yet; creating $KEY (choose a passphrase)."
+    ssh-keygen -t ed25519 -C "$EMAIL" -f "$KEY" </dev/tty || die "ssh-keygen failed"
+  fi
+  ssh-add --apple-use-keychain "$KEY" </dev/tty 2>/dev/null && ok "key in the agent and Keychain" \
+    || warn "could not add the key to the agent; ssh will ask for it on first use"
+
+  {
+    printf '[user]\n'
+    printf '    name = "%s"\n' "${NAME//\"/\\\"}"
+    printf '    email = "%s"\n' "${EMAIL//\"/\\\"}"
+    printf '    signingkey = %s\n' "$KEY.pub"
+  } > "$LOCAL"
+  read -r ktype kbody _ < "$KEY.pub"
+  printf '%s %s %s\n' "$EMAIL" "$ktype" "$kbody" > "$DOTFILES/git/allowed_signers"
+  if [ -f "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then backup "$HOME/.gitconfig"; fi
+  ok "git identity: $NAME <$EMAIL>, commits signed with your SSH key"
+
+  if gh auth status -h github.com >/dev/null 2>&1; then
+    ok "GitHub: already logged in"
+    if ! gh auth status -h github.com 2>&1 | grep -q 'admin:ssh_signing_key'; then
+      gh auth refresh -h github.com -s admin:public_key,admin:ssh_signing_key || warn "could not add key scopes"
+    fi
+  else
+    info "Logging in to GitHub in your browser."
+    gh auth login --hostname github.com --git-protocol https --web \
+      --scopes admin:public_key,admin:ssh_signing_key,workflow </dev/tty \
+      || die "gh auth login failed"
+  fi
+  gh config set git_protocol https -h github.com >/dev/null 2>&1 || true
+
+  title="$(scutil --get ComputerName 2>/dev/null || hostname -s)"
+  keys="$(gh ssh-key list 2>/dev/null || true)"
+  for type in authentication signing; do
+    if printf '%s\n' "$keys" | awk -F '\t' -v k="$ktype $kbody" -v t="$type" \
+        '{ split($2, a, " "); if (a[1] " " a[2] == k && $5 == t) f = 1 } END { exit !f }'; then
+      ok "SSH key on GitHub ($type)"
+    else
+      gh ssh-key add "$KEY.pub" --type "$type" --title "$title" >/dev/null \
+        && ok "uploaded SSH key to GitHub ($type)" \
+        || warn "could not upload the SSH key ($type)"
+    fi
+  done
+fi
+
+# ---------------------------------------------------------------- done
+
+step "Done"
+[ -d "$BACKUP" ] && info "Replaced files are in $(pretty "$BACKUP")"
+if [ "${SHELL##*/}" != "zsh" ]; then
+  chsh -s /bin/zsh && ok "default shell set to zsh"
+fi
+info "Open Ghostty (or run: exec zsh) to start using the new setup."

@@ -1,0 +1,8 @@
+# Copied into ~/.ssh/config by install.sh only when there is none yet.
+# Per-machine hosts go in ~/.ssh/config.d/.
+Include config.d/*
+
+Host *
+    UseKeychain yes
+    AddKeysToAgent yes
+    IdentityFile ~/.ssh/id_ed25519

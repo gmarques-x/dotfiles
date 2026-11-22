@@ -1,0 +1,58 @@
+# Ghostty. Nord colours. Anything not set here is Ghostty's default.
+
+font-family = JetBrains Mono
+font-size = 12
+font-thicken = true
+
+background = #2E3440
+foreground = #D8DEE9
+cursor-color = #D8DEE9
+selection-background = #434C5E
+selection-foreground = #D8DEE9
+
+palette = 0=#4C566A
+palette = 1=#BF616A
+palette = 2=#A3BE8C
+palette = 3=#EBCB8B
+palette = 4=#81A1C1
+palette = 5=#B48EAD
+palette = 6=#88C0D0
+palette = 7=#D8DEE9
+palette = 8=#919CB3
+palette = 9=#BF616A
+palette = 10=#A3BE8C
+palette = 11=#EBCB8B
+palette = 12=#81A1C1
+palette = 13=#B48EAD
+palette = 14=#88C0D0
+palette = 15=#D8DEE9
+
+# Window
+background-opacity = 1
+background-blur = true
+macos-titlebar-style = transparent
+window-theme = dark
+window-padding-x = 24
+window-padding-y = 20
+window-width = 150
+window-height = 40
+window-save-state = never
+window-colorspace = display-p3
+
+# Behaviour
+cursor-style = block
+cursor-style-blink = false
+mouse-hide-while-typing = true
+copy-on-select = clipboard
+confirm-close-surface = false
+shell-integration = zsh
+shell-integration-features = no-cursor,sudo,title
+
+# Quick terminal: ⌃` from any app (needs Ghostty allowed under Accessibility).
+keybind = global:ctrl+grave_accent=toggle_quick_terminal
+quick-terminal-position = top
+quick-terminal-animation-duration = 0.12
+
+# Left ⌥ is Alt, so fzf's ⌥C and zsh's ⌥B/⌥F (word left/right) work.
+# Right ⌥ stays as it is, for [ ] { } | @ on non-US layouts.
+macos-option-as-alt = left

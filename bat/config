@@ -1,0 +1,3 @@
+# bat. The ansi theme uses the terminal's 16 colours (Nord in Ghostty).
+--theme=ansi
+--style=numbers,changes,header
