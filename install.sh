@@ -432,18 +432,13 @@ for f in .zsh_history .zsh_sessions .zcompdump* .lesshst .python_history .vimrc 
   done
 done
 
-# Claude Code keeps its settings in ~/.config/claude (CLAUDE_CONFIG_DIR, set in
-# zsh/.zshenv) instead of ~/.claude and ~/.claude.json. Anything already in those
-# is copied across (never overwriting), and the old ones go to the backup. A link
-# from an older setup (to OneDrive, say) is only removed; what it points to stays.
+# Keep Claude Code's settings in the XDG folder and link its default path there.
 CLAUDE_DIR="$CONFIG/claude"
-mkdir -p "$CLAUDE_DIR"
-if [ -d "$HOME/.claude" ]; then
-  cp -Rn "$HOME/.claude/." "$CLAUDE_DIR/" 2>/dev/null || true
-  backup "$HOME/.claude" && ok "moved ~/.claude into $(pretty "$CLAUDE_DIR")"
-elif [ -L "$HOME/.claude" ]; then
-  backup "$HOME/.claude"
+mkdir -p "$CLAUDE_DIR" || die "could not create $CLAUDE_DIR"
+if [ -d "$HOME/.claude" ] && ! [ "$HOME/.claude" -ef "$CLAUDE_DIR" ]; then
+  rsync -a --ignore-existing "$HOME/.claude/" "$CLAUDE_DIR/" || die "could not migrate ~/.claude into $CLAUDE_DIR"
 fi
+link "$CLAUDE_DIR" "$HOME/.claude"
 if [ -f "$HOME/.claude.json" ]; then
   [ -e "$CLAUDE_DIR/.claude.json" ] || cp "$HOME/.claude.json" "$CLAUDE_DIR/.claude.json"
   backup "$HOME/.claude.json" && ok "moved ~/.claude.json into $(pretty "$CLAUDE_DIR")"

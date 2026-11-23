@@ -3,7 +3,7 @@
 #   theme              pick from a menu (with preview)
 #   theme <id>         switch to a theme
 #   theme apply        re-apply the current theme (used by install.sh and dots-sync)
-#   theme wallpaper [illustrated|realistic]   show or change wallpaper style
+#   theme wallpaper [list|current|illustrated|realistic|<image>]   manage wallpapers
 #   theme list | current
 # Writes each tool's colour file next to its config (not tracked by git), then
 # reloads what it can live: Ghostty, Neovim, VS Code, open zsh prompts, the
@@ -18,7 +18,7 @@ THEMES=$DOT/themes
 STATE=${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles
 DATA=${XDG_DATA_HOME:-$HOME/.local/share}
 CURRENT=$STATE/theme
-WALL_STYLE=$STATE/wallpaper-style
+WALL_SELECTION=$STATE/wallpaper
 DEFAULT=nord
 
 ok()   { print -P "  %F{green}✓%f $1" }
@@ -28,22 +28,50 @@ die()  { print -P "  %F{red}✗%f $1" >&2; exit 1 }
 ids()     { print -l $THEMES/*.sh(:t:r) }
 current() { [[ -s $CURRENT ]] && print -r -- "$(<$CURRENT)" || print $DEFAULT }
 
-wallpaper_style() {
-  if [[ -f $WALL_STYLE && "$(<$WALL_STYLE)" == realistic ]]; then
-    print realistic
-  else
-    print illustrated
-  fi
+default_wallpaper() {
+  case $1 in
+    everforest-*) print realistic/everforest-coast.jpg ;;
+    nord) print realistic/arctic-radar.jpg ;;
+    *) if [[ -f $DOT/wallpapers/realistic/$1.jpg ]]; then
+         print -r -- "realistic/$1.jpg"
+       elif [[ -f $DOT/wallpapers/$1.jpg ]]; then
+         print -r -- "$1.jpg"
+       else
+         print gradient
+       fi ;;
+  esac
 }
 
-set_wallpaper_style() {
-  local style=$1 id=$(current)
-  [[ $style == (illustrated|realistic) ]] || die "Choose illustrated or realistic"
-  load $id
-  write_wallpaper $style || return 1
-  mkdir -p $STATE || return 1
-  print -r -- $style >| $WALL_STYLE.$$ || return 1
-  mv -f $WALL_STYLE.$$ $WALL_STYLE
+valid_wallpaper() {
+  [[ $1 == (realistic/|)[a-zA-Z0-9_-]##.jpg && -f $DOT/wallpapers/$1 ]]
+}
+
+selected_wallpaper() {
+  local owner choice
+  if [[ -s $WALL_SELECTION ]]; then
+    IFS=$'\t' read -r owner choice < "$WALL_SELECTION"
+    if [[ $owner == "$1" ]] && { [[ $choice == gradient ]] || valid_wallpaper "$choice"; }; then
+      print -r -- "$choice"
+      return
+    fi
+  fi
+  default_wallpaper "$1"
+}
+
+save_wallpaper() {
+  mkdir -p "$STATE" && print -r -- "$1"$'\t'"$2" >| "$WALL_SELECTION.$$" &&
+    mv -f "$WALL_SELECTION.$$" "$WALL_SELECTION"
+}
+
+set_wallpaper() {
+  local id=$(current) choice=$1
+  load "$id"
+  case $choice in
+    realistic) choice=$(default_wallpaper "$id") ;;
+    illustrated) choice=$id.jpg; [[ -f $DOT/wallpapers/$choice ]] || choice=gradient ;;
+    *) valid_wallpaper "$choice" || die "Unknown wallpaper '$choice'. Try: theme wallpaper list" ;;
+  esac
+  write_wallpaper "$choice" && save_wallpaper "$id" "$choice"
 }
 
 # Load a theme's variables (optional ones default to empty)
@@ -420,7 +448,7 @@ write_macos() {
     warn "Could not switch macOS to $mode mode (allow Automation for your terminal)"
   write_macos_colours
 
-  write_wallpaper "$(wallpaper_style)" || warn "Could not set the wallpaper"
+  write_wallpaper "$choice" || return 1
 }
 
 write_macos_colours() {
@@ -451,11 +479,8 @@ PYACCENT
 
 write_wallpaper() {
   (( ${+THEME_NO_MACOS} )) && return 0
-  local wall=$DOT/wallpapers/$id.jpg
-  if [[ $1 == realistic && -f $DOT/wallpapers/realistic/$id.jpg ]]; then
-    wall=$DOT/wallpapers/realistic/$id.jpg
-  fi
-  if [[ ! -f $wall ]]; then
+  local wall=$DOT/wallpapers/$1
+  if [[ $1 == gradient ]]; then
     # Custom themes can omit artwork and use a gradient in their own colours.
     wall=$DATA/dotfiles/wallpaper/$id.png
     if [[ ! -f $wall ]]; then
@@ -520,6 +545,7 @@ repaint_ghostty() {
 
 apply() {
   id=$1
+  local choice=${2:-$(default_wallpaper "$id")}
   load $id
   print -P "Switching to %B$name%b"
   write_ghostty; write_zsh; write_eza; write_starship; write_git; write_lazygit
@@ -531,6 +557,7 @@ apply() {
   ok "macOS $mode mode, $accent accent, matching folders, yellow highlight, wallpaper"
   write_codex
   mkdir -p $STATE && print -r -- $id >| $CURRENT
+  save_wallpaper "$id" "$choice"
   reload
   ok "Done. Open shells update at their next prompt."
   return 0
@@ -586,50 +613,87 @@ menu_rows() {
   for id in $(ids); do (load $id; print -r -- "$id"$'\t'"$name${${(M)id:#$cur}:+  ●}"); done
 }
 
-menu_header() {
-  print -r -- " ${1:+$1 · }$(wallpaper_style) · ctrl-w switch wallpaper · enter apply · esc quit"$'\n '
+wallpaper_rows() {
+  local file key label style active=$(selected_wallpaper "$(current)")
+  for file in "$DOT"/wallpapers/{realistic/,}*.jpg(N); do
+    key=${file#"$DOT/wallpapers/"}
+    label=${file:t:r}
+    style=illustrated
+    [[ $key == realistic/* ]] && style=realistic
+    print -r -- "$key"$'\t'"${label//-/ } · $style${${(M)key:#$active}:+  ●}"
+  done
 }
 
-toggle_wallpaper() {
-  local next=realistic
-  [[ $(wallpaper_style) == realistic ]] && next=illustrated
-  if set_wallpaper_style $next; then
-    menu_header
-  else
-    menu_header "Wallpaper switch failed"
-  fi
+wallpaper_preview() {
+  valid_wallpaper "$1" || return 1
+  local width=${FZF_PREVIEW_COLUMNS:-60} height=$(( 2 * ${FZF_PREVIEW_LINES:-20} ))
+  magick "$DOT/wallpapers/$1" -thumbnail "${width}x${height}" -depth 8 -compress none ppm:- |
+    awk 'NR == 2 { width=$1 }
+      NR > 3 {
+        for (i=1; i<=NF; i+=3) {
+          color=sprintf("%d;%d;%d", $i, $(i+1), $(i+2))
+          if (row % 2 == 0) top[col]=color
+          else printf "\033[38;2;%sm\033[48;2;%sm▀", top[col], color
+          if (++col == width) {
+            if (row % 2) print "\033[0m"
+            col=0
+            row++
+          }
+        }
+      }
+      END { if (row % 2) {
+        for (i=0; i<width; i++) printf "\033[38;2;%sm▀", top[i]
+        print "\033[0m"
+      } }'
 }
 
-# Enter applies the highlighted theme and keeps the menu open; Esc quits.
-# The menu uses the terminal's 16 colours, so it follows each switch too.
 menu() {
   (( $+commands[fzf] )) || die "fzf is not installed"
-  local cur=$(current) i=0 pos=1 id
-  for id in $(ids); do (( ++i )); [[ $id == $cur ]] && pos=$i; done
-  menu_rows |
-    fzf --ansi --delimiter '\t' --with-nth 2 --no-multi --cycle --track \
-        --no-height --layout reverse --border rounded --info hidden --color 16 \
-        --prompt '  theme ❯ ' --header "$(menu_header)" \
-        --preview "$SELF _preview {1}" --preview-window 'right,62%,border-left' \
-        --bind "start:pos($pos)" --bind "ctrl-w:transform-header($SELF _toggle-wallpaper)" \
-        --bind "enter:execute-silent($SELF {1} >/dev/null 2>&1)+reload-sync($SELF _rows)+transform-header($SELF _applied {1})" \
-    >/dev/null || true
+  local pane=theme rows preview_cmd active result key selection pos message=''
+  while true; do
+    if [[ $pane == theme ]]; then
+      rows=$(menu_rows)
+      active=$(current)
+      preview_cmd=_preview
+    else
+      rows=$(wallpaper_rows)
+      active=$(selected_wallpaper "$(current)")
+      preview_cmd=_wallpaper-preview
+    fi
+    pos=$(awk -F '\t' -v active="$active" '$1 == active {print NR}' <<< "$rows")
+    result=$(fzf --ansi --delimiter '\t' --with-nth 2 --no-multi --cycle \
+      --no-height --layout reverse --border rounded --info hidden --color 16 \
+      --prompt "  $pane ❯ " --header "${message:+$message · }Tab Themes / Wallpapers · Enter apply · Esc quit" \
+      --preview "${(q)SELF} $preview_cmd {1}" --preview-window 'right,62%,border-left' \
+      --bind "start:pos(${pos:-1})" --expect tab,ctrl-w,enter <<< "$rows") || return 0
+    key=${result%%$'\n'*}
+    selection=${result#*$'\n'}
+    selection=${selection%%$'\t'*}
+    message=''
+    if [[ $key == (tab|ctrl-w) ]]; then
+      if [[ $pane == theme ]]; then pane=wallpaper; else pane=theme; fi
+    elif [[ -n $selection && $key == enter ]]; then
+      local -a args=("$selection")
+      [[ $pane == wallpaper ]] && args=(wallpaper "$selection")
+      if "$SELF" "${args[@]}" >/dev/null; then message="Applied $selection"; else message="Could not apply $selection"; fi
+    fi
+  done
 }
 
 case ${1:-} in
   "")            menu ;;
   list|ls)       for id in $(ids); do (load $id; printf '%-22s %s%s\n' $id $name "$([[ $id == $(current) ]] && print -n '  ●')"); done ;;
   current)       current ;;
-  wallpaper)     case $# in
-                   1) wallpaper_style ;;
-                   2) set_wallpaper_style "$2" ;;
-                   *) die "Usage: theme wallpaper [illustrated|realistic]" ;;
+  wallpaper)     case ${2:-} in
+                   "") [[ $(selected_wallpaper "$(current)") == realistic/* ]] && print realistic || print illustrated ;;
+                   current) selected_wallpaper "$(current)" ;;
+                   list) wallpaper_rows | cut -f1 ;;
+                   *) (( $# == 2 )) || die "Usage: theme wallpaper <image>"
+                      set_wallpaper "$2" ;;
                  esac ;;
-  _toggle-wallpaper) toggle_wallpaper ;;
-  apply)         apply $(current) ;;
-  _preview)      preview $2 ;;
-  _rows)         menu_rows ;;
-  _applied)      load $2; menu_header "$name applied" ;;
+  apply)         id=$(current); apply "$id" "$(selected_wallpaper "$id")" ;;
+  _preview)      preview "$2" ;;
+  _wallpaper-preview) wallpaper_preview "$2" ;;
   -h|--help|help) sed -n '2,11s/^# \{0,1\}//p' $SELF ;;
   *)             apply $1 ;;
 esac
