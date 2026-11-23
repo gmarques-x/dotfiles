@@ -10,6 +10,7 @@ cask "whatsapp"            # WhatsApp
 cask "microsoft-teams"     # Microsoft Teams
 cask "steam"               # Steam (an Intel app: Rosetta is installed with it)
 cask "modrinth"            # Modrinth: Minecraft launcher
+cask "vorssaint"           # Vorssaint: menu bar keep-awake, system monitor and volume mixer
 cask "wireshark-app"       # Wireshark, with tshark and its other command-line tools (asks for your password)
 cask "chatgpt"             # ChatGPT desktop
 cask "codex"               # Codex: OpenAI's coding agent, in the terminal
