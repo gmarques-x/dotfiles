@@ -1,0 +1,10 @@
+{
+    "workbench.colorTheme": "Nord",
+    "workbench.startupEditor": "none",
+    "git.openRepositoryInParentFolders": "always",
+    "terminal.integrated.initialHint": false,
+    "explorer.confirmDragAndDrop": false,
+    "workbench.editorAssociations": {
+        "*.md": "vscode.markdown.editor"
+    }
+}

@@ -3,18 +3,24 @@
 #
 #   1. Homebrew
 #   2. OneDrive (then waits while you finish its setup wizard)
-#   3. Terminal tools and apps from the Brewfile (Ghostty, eza, yazi, starship,
-#      ChatGPT, Codex, ...)
+#   3. Command-line tools and fonts (Brewfile), then the apps you pick from
+#      Brewfile.apps (Rosetta first, for Steam), and Chrome as the default browser
 #   4. Creates ~/Developer and the XDG folders, links the configs into
-#      ~/.config and ~/.zshenv, and moves stray zsh/less/python dotfiles out of ~/
+#      ~/.config (and ~/.zshenv, VS Code's settings, ~/.local/bin/theme and
+#      dots-sync), moves stray dotfiles out of ~/ (Claude Code's into
+#      ~/.config/claude), adds a login item that gives apps CODEX_HOME and
+#      CLAUDE_CONFIG_DIR, and installs the yazi and Neovim (LazyVim) plugins
 #   5. Links ~/.ssh to the "dot-ssh" folder in OneDrive
 #   6. Links ~/.config/codex (Codex's settings and memory, found through
 #      $CODEX_HOME) to the "codex" folder in OneDrive, creating it there if it
-#      doesn't exist; a login item sets CODEX_HOME for apps too
+#      doesn't exist
 #   7. Git identity, GitHub login and SSH keys on GitHub
 #   8. macOS settings (macos/settings.sh)
-#   9. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
+#   9. Turns off Siri, suggestions, ads and Game Center and their background
+#      agents (macos/debloat.sh)
+#  10. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
 #      Pages) and GarageBand's sound library to the Trash, after asking
+#  11. Applies the theme (bin/theme; Nord unless you picked another)
 #
 # Safe to run again: anything already done is skipped. Anything replaced is
 # moved (never deleted) to $XDG_STATE_HOME/dotfiles/backup/<timestamp>/
@@ -23,7 +29,8 @@
 # Environment overrides:
 #   ONEDRIVE_SSH_DIR     name of the ssh folder inside OneDrive (default: dot-ssh)
 #   ONEDRIVE_CODEX_DIR   name of the Codex folder inside OneDrive (default: codex)
-#   DOTFILES_SKIP        space-separated steps to skip: onedrive ssh codex github macos debloat
+#   DOTFILES_SKIP        space-separated steps to skip:
+#                        onedrive brew ssh codex github macos debloat trash theme
 
 set -uo pipefail
 
@@ -47,11 +54,54 @@ else
   B="" DIM="" G="" Y="" R="" C="" N=""
 fi
 
-step() { printf '\n%s==> %s%s\n' "$B$C" "$1" "$N"; }
+# The sections, in order. Before each one the whole list is shown: ✓ done,
+# ! done with warnings, – skipped, ▸ running now, ○ still to come.
+STEPS=("Homebrew" "OneDrive" "Apps and command-line tools" "Folders and configs"
+       "~/.ssh in OneDrive" "Codex's folder in OneDrive" "Git and GitHub" "macOS settings"
+       "Siri, suggestions and ads off" "Remove Apple apps" "Theme")
+STATUS=() CUR=-1 STEP_WARN=0 STEP_SKIP=0
+close_step() {
+  [ "$CUR" -ge 0 ] && [ "$CUR" -lt "${#STEPS[@]}" ] || return 0
+  if [ "$STEP_SKIP" = 1 ]; then STATUS[$CUR]=skip
+  elif [ "$STEP_WARN" = 1 ]; then STATUS[$CUR]=warn
+  else STATUS[$CUR]=done; fi
+}
+checklist() {
+  local i line
+  for i in "${!STEPS[@]}"; do
+    case "${STATUS[$i]:-}" in
+      done) line="$G✓$N ${STEPS[$i]}" ;;
+      warn) line="$Y!$N ${STEPS[$i]} ${DIM}(see the warnings above)$N" ;;
+      skip) line="$DIM– ${STEPS[$i]} (skipped)$N" ;;
+      fail) line="$R✗ ${STEPS[$i]}$N" ;;
+      *) if [ "$i" -eq "$CUR" ]; then line="$B$C▸ ${STEPS[$i]}$N"; else line="$DIM○ ${STEPS[$i]}$N"; fi ;;
+    esac
+    printf '    %s\n' "$line"
+  done
+}
+step() {
+  close_step
+  CUR=$((CUR + 1)) STEP_WARN=0 STEP_SKIP=0
+  printf '\n'
+  checklist
+  printf '\n%s==> [%d/%d] %s%s\n' "$B$C" "$((CUR + 1))" "${#STEPS[@]}" "$1" "$N"
+}
+finish() {
+  close_step
+  CUR=${#STEPS[@]}
+  printf '\n%s==> Done%s\n' "$B$C" "$N"
+  checklist
+  printf '\n'
+}
 info() { printf '    %s\n' "$1"; }
 ok()   { printf '    %s✓%s %s\n' "$G" "$N" "$1"; }
-warn() { printf '    %s!%s %s\n' "$Y" "$N" "$1"; }
-die()  { printf '\n%s✗ %s%s\n' "$R" "$1" "$N" >&2; exit 1; }
+warn() { printf '    %s!%s %s\n' "$Y" "$N" "$1"; STEP_WARN=1; }
+skipped() { printf '    %s– skipped (DOTFILES_SKIP)%s\n' "$DIM" "$N"; STEP_SKIP=1; }
+die()  {
+  printf '\n%s✗ %s%s\n' "$R" "$1" "$N" >&2
+  if [ "$CUR" -ge 0 ] && [ "$CUR" -lt "${#STEPS[@]}" ]; then STATUS[$CUR]=fail; printf '\n' >&2; checklist >&2; fi
+  exit 1
+}
 pretty() { printf '%s' "${1/#"$HOME"/\~}"; }
 skip() { case "$SKIP" in *" $1 "*) return 0 ;; esac; return 1; }
 
@@ -182,7 +232,7 @@ eval "$("$BREW" shellenv)"
 
 step "OneDrive"
 if skip onedrive; then
-  warn "skipped (DOTFILES_SKIP)"
+  skipped
 else
   if [ -d /Applications/OneDrive.app ]; then
     ok "already installed"
@@ -211,43 +261,120 @@ else
   fi
 fi
 
-# ---------------------------------------------------------------- 3. Tools
+# ---------------------------------------------------------------- 3. Apps and tools
 
-step "Terminal tools and apps (Brewfile)"
-# An app installed outside Homebrew (dragged in, or from its own installer)
-# makes `brew install --cask` fail, so those casks are skipped and left alone.
-skip_casks=""
-for pair in chatgpt:ChatGPT ghostty:Ghostty "google-chrome:Google Chrome"; do
-  cask="${pair%%:*}" app="${pair#*:}"
-  if [ -d "/Applications/$app.app" ] && ! "$BREW" list --cask "$cask" >/dev/null 2>&1; then
-    skip_casks="$skip_casks $cask"
-    info "${DIM}$app is already installed outside Homebrew; leaving it as it is${N}"
-  fi
-done
-export HOMEBREW_BUNDLE_CASK_SKIP="${skip_casks# }"
-if [ -z "$skip_casks" ] && "$BREW" bundle check --file="$DOTFILES/Brewfile" >/dev/null 2>&1; then
-  ok "everything installed"
+step "Apps and command-line tools"
+# pick_apps: show Brewfile.apps as a list to mark with space; print the chosen casks.
+# The first time nothing is marked; after that, the last choice is.
+APPS_CHOICE="$STATE/apps"
+pick_apps() {
+  local lines name desc i=0 binds="start:"
+  lines="$(sed -n 's/^cask "\([^"]*\)" *# *\(.*\)$/\1	\2/p' "$DOTFILES/Brewfile.apps")"
+  while IFS=$'\t' read -r name desc; do
+    i=$((i + 1))
+    if [ -f "$APPS_CHOICE" ] && grep -qx "$name" "$APPS_CHOICE"; then binds="${binds}pos($i)+toggle+"; fi
+  done <<<"$lines"
+  printf '%s\n' "$lines" | fzf --multi --no-sort --cycle --layout reverse --height '~100%' \
+    --delimiter '\t' --with-nth 2 --prompt '  apps ❯ ' --marker '✓' --pointer '▸' \
+    --header $'  space: mark or unmark · ctrl-a: mark all · return: install the marked ones\n' \
+    --bind 'space:toggle+down' --bind 'ctrl-a:select-all' --bind "${binds}first" \
+    --bind 'enter:become([ "$FZF_SELECT_COUNT" -gt 0 ] && cat {+f} || true)' \
+    | cut -f1
+}
+if skip brew; then
+  skipped
 else
-  "$BREW" bundle --file="$DOTFILES/Brewfile" || die "brew bundle failed"
-  ok "installed"
+  info "Command-line tools and fonts (Brewfile)"
+  if "$BREW" bundle check --file="$DOTFILES/Brewfile" >/dev/null 2>&1; then
+    ok "everything installed"
+  elif "$BREW" bundle --file="$DOTFILES/Brewfile"; then
+    ok "installed"
+  else
+    # One item failing shouldn't stop the rest of the setup.
+    warn "some of the Brewfile didn't install (see above); run install.sh again later to retry"
+  fi
+
+  info "Apps (Brewfile.apps)"
+  if [ -z "${DOTFILES_NONINTERACTIVE:-}" ] && command -v fzf >/dev/null && [ -r /dev/tty ]; then
+    if chosen="$(pick_apps)"; then
+      mkdir -p "$STATE" && printf '%s\n' "$chosen" > "$APPS_CHOICE"
+    else
+      # Esc: the previous choice, or none the first time
+      chosen="$(cat "$APPS_CHOICE" 2>/dev/null || true)"
+      info "${DIM}kept the previous choice${N}"
+    fi
+  else
+    # No questions (dots-sync): the saved choice, or no apps
+    chosen="$(cat "$APPS_CHOICE" 2>/dev/null || true)"
+  fi
+  has_app() { printf '%s\n' "$chosen" | grep -qx "$1"; }
+
+  if [ -z "$(printf '%s' "$chosen" | tr -d '[:space:]')" ]; then
+    ok "no apps chosen"
+  else
+    # Steam is an Intel app: on Apple silicon it needs Rosetta.
+    if has_app steam && [ "$(uname -m)" = arm64 ] && ! arch -x86_64 /usr/bin/true 2>/dev/null; then
+      info "Installing Rosetta, for Steam (it may ask for your Mac password)."
+      sudo softwareupdate --install-rosetta --agree-to-license >/dev/null \
+        && ok "Rosetta installed" || warn "could not install Rosetta; Steam won't open without it"
+    fi
+    # An app installed outside Homebrew (dragged in, or from its own installer)
+    # makes `brew install --cask` fail, so those are left as they are.
+    apps_brewfile="$STATE/Brewfile.apps.chosen"
+    mkdir -p "$STATE"; : > "$apps_brewfile"
+    while IFS= read -r cask; do
+      [ -n "$cask" ] || continue
+      app="$("$BREW" info --cask --json=v2 "$cask" 2>/dev/null | jq -r \
+        '[.casks[0].artifacts[] | objects | .app? // empty | .[] | strings | select(endswith(".app"))][0] // empty' 2>/dev/null)"
+      if [ -n "$app" ] && [ -d "/Applications/$app" ] && ! "$BREW" list --cask "$cask" >/dev/null 2>&1; then
+        info "${DIM}${app%.app} is already installed outside Homebrew; leaving it as it is${N}"
+        continue
+      fi
+      grep "^cask \"$cask\"" "$DOTFILES/Brewfile.apps" >> "$apps_brewfile"
+    done <<<"$chosen"
+    if [ ! -s "$apps_brewfile" ] || "$BREW" bundle check --file="$apps_brewfile" >/dev/null 2>&1; then
+      ok "the chosen apps are installed"
+    elif "$BREW" bundle --file="$apps_brewfile"; then
+      ok "installed the chosen apps"
+    else
+      warn "some apps didn't install (see above); run install.sh again later to retry"
+    fi
+  fi
+
+  # Chrome as the default browser (macOS asks you to confirm, once).
+  if has_app google-chrome && [ -d "/Applications/Google Chrome.app" ] && command -v defaultbrowser >/dev/null; then
+    if defaultbrowser 2>/dev/null | grep -q '^\* chrome$'; then
+      ok "Chrome is the default browser"
+    else
+      defaultbrowser chrome >/dev/null 2>&1 && info "Choose \"Use Chrome\" in the dialog to make it the default browser." \
+        || warn "could not make Chrome the default browser"
+    fi
+  fi
 fi
 
-# ---------------------------------------------------------------- 4. Configs
+# ---------------------------------------------------------------- 4. Folders and configs
 
-step "Configs"
+step "Folders and configs"
 # The XDG folders, ~/.local/bin (where the XDG spec puts user programs) and ~/Developer.
 mkdir -p "$CONFIG" "$CACHE" "$DATA" "$XSTATE" "$HOME/.local/bin" "$HOME/Developer"
 ok "~/Developer and the XDG folders ($(pretty "$CONFIG"), $(pretty "$CACHE"), $(pretty "$DATA"), $(pretty "$XSTATE"))"
-link "$DOTFILES/zsh/.zshenv"                  "$HOME/.zshenv"
-link "$DOTFILES/zsh"                          "$CONFIG/zsh"
-link "$DOTFILES/ghostty"                      "$CONFIG/ghostty"
-link "$DOTFILES/starship/starship.toml"       "$CONFIG/starship.toml"
-link "$DOTFILES/starship/starship-plain.toml" "$CONFIG/starship-plain.toml"
-link "$DOTFILES/eza"                          "$CONFIG/eza"
-link "$DOTFILES/bat"                          "$CONFIG/bat"
-link "$DOTFILES/yazi"                         "$CONFIG/yazi"
-link "$DOTFILES/git"                          "$CONFIG/git"
-link "$DOTFILES/fastfetch"                    "$CONFIG/fastfetch"
+link "$DOTFILES/zsh/.zshenv"  "$HOME/.zshenv"
+for tool in zsh ghostty starship eza bat yazi git fastfetch atuin htop glow lazygit nvim vim wget; do
+  link "$DOTFILES/$tool" "$CONFIG/$tool"
+done
+link "$DOTFILES/vscode/settings.json" "$HOME/Library/Application Support/Code/User/settings.json"
+link "$DOTFILES/bin/theme"     "$HOME/.local/bin/theme"
+link "$DOTFILES/bin/dots-sync" "$HOME/.local/bin/dots-sync"
+# Earlier versions linked the two starship files on their own; they now live in ~/.config/starship.
+for f in starship.toml starship-plain.toml; do
+  if [ -L "$CONFIG/$f" ]; then backup "$CONFIG/$f"; fi
+done
+# atuin looks for themes in its data folder; `theme` writes them into atuin/themes.
+mkdir -p "$DOTFILES/atuin/themes" "$DATA/atuin"
+link "$DOTFILES/atuin/themes" "$DATA/atuin/themes"
+# VS Code's "Home" workspace (drag it into the Dock to open VS Code on your home folder).
+mkdir -p "$CONFIG/vscode"
+printf '{\n  "folders": [{ "name": "Home", "path": "%s" }],\n  "settings": {}\n}\n' "$HOME" > "$CONFIG/vscode/home.code-workspace"
 
 # zsh reads ~/.zprofile and ~/.zshrc only without ZDOTDIR; ours live in ~/.config/zsh.
 for f in .zprofile .zshrc .zlogin; do
@@ -256,23 +383,106 @@ done
 # Ghostty prefers this file over ~/.config/ghostty/config when it exists.
 GHOSTTY_APP_SUPPORT="$HOME/Library/Application Support/com.mitchellh.ghostty/config"
 if [ -f "$GHOSTTY_APP_SUPPORT" ] && [ ! -L "$GHOSTTY_APP_SUPPORT" ]; then backup "$GHOSTTY_APP_SUPPORT"; fi
-mkdir -p "$XSTATE/zsh" "$XSTATE/less" "$XSTATE/python" "$CACHE/zsh"
+mkdir -p "$XSTATE/zsh" "$XSTATE/less" "$XSTATE/python" "$XSTATE/vim" "$CACHE/zsh"
 # Dotfiles zsh and less used to leave in ~/ : move them to their XDG places.
 if [ -f "$HOME/.zsh_history" ] && [ ! -e "$XSTATE/zsh/history" ]; then
   mv "$HOME/.zsh_history" "$XSTATE/zsh/history" && ok "moved ~/.zsh_history → $(pretty "$XSTATE/zsh/history")"
 fi
-for f in .zsh_history .zsh_sessions .zcompdump* .lesshst .python_history; do
+# vim (now ~/.config/vim), atuin (~/.local/share/atuin) and wget (~/.cache/wget-hsts) too.
+for f in .zsh_history .zsh_sessions .zcompdump* .lesshst .python_history .vimrc .vim .viminfo .wget-hsts .atuin; do
   for p in "$HOME"/$f; do
     [ -e "$p" ] || [ -L "$p" ] || continue
     backup "$p"
   done
 done
 
+# Claude Code keeps its settings in ~/.config/claude (CLAUDE_CONFIG_DIR, set in
+# zsh/.zshenv) instead of ~/.claude and ~/.claude.json. Anything already in those
+# is copied across (never overwriting), and the old ones go to the backup. A link
+# from an older setup (to OneDrive, say) is only removed; what it points to stays.
+CLAUDE_DIR="$CONFIG/claude"
+mkdir -p "$CLAUDE_DIR"
+if [ -d "$HOME/.claude" ]; then
+  cp -Rn "$HOME/.claude/." "$CLAUDE_DIR/" 2>/dev/null || true
+  backup "$HOME/.claude" && ok "moved ~/.claude into $(pretty "$CLAUDE_DIR")"
+elif [ -L "$HOME/.claude" ]; then
+  backup "$HOME/.claude"
+fi
+if [ -f "$HOME/.claude.json" ]; then
+  [ -e "$CLAUDE_DIR/.claude.json" ] || cp "$HOME/.claude.json" "$CLAUDE_DIR/.claude.json"
+  backup "$HOME/.claude.json" && ok "moved ~/.claude.json into $(pretty "$CLAUDE_DIR")"
+fi
+
+# Apps opened from the Dock or Finder (ChatGPT, Claude, VS Code) don't read zsh's
+# files, so a login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for the whole
+# session at each login.
+CODEX_HOME_DIR="$CONFIG/codex"
+AGENT_LABEL="local.dotfiles.environment"
+AGENT="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
+mkdir -p "${AGENT%/*}"
+OLD_AGENT="$HOME/Library/LaunchAgents/local.dotfiles.codex-home.plist"   # earlier versions: Codex only
+if [ -f "$OLD_AGENT" ]; then
+  launchctl bootout "gui/$(id -u)/local.dotfiles.codex-home" 2>/dev/null || true
+  rm -f "$OLD_AGENT"
+fi
+cat > "$AGENT.tmp" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$AGENT_LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>/bin/launchctl setenv CODEX_HOME "$CODEX_HOME_DIR"; /bin/launchctl setenv CLAUDE_CONFIG_DIR "$CLAUDE_DIR"</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+PLIST
+if cmp -s "$AGENT.tmp" "$AGENT"; then
+  rm -f "$AGENT.tmp"
+  ok "login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for apps"
+else
+  mv "$AGENT.tmp" "$AGENT"
+  launchctl bootout "gui/$(id -u)/$AGENT_LABEL" 2>/dev/null || true
+  if launchctl bootstrap "gui/$(id -u)" "$AGENT" 2>/dev/null; then
+    ok "login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for apps ($(pretty "$AGENT"))"
+  else
+    warn "could not load $(pretty "$AGENT"); it takes effect at the next login"
+  fi
+fi
+# Now as well, for apps opened from here on (already open ones need a restart).
+launchctl setenv CODEX_HOME "$CODEX_HOME_DIR" 2>/dev/null || true
+launchctl setenv CLAUDE_CONFIG_DIR "$CLAUDE_DIR" 2>/dev/null || true
+
+# The tools' own downloads, with the same folders zsh gives them (zsh/.zshenv).
+export XDG_CONFIG_HOME="$CONFIG" XDG_CACHE_HOME="$CACHE" XDG_DATA_HOME="$DATA" XDG_STATE_HOME="$XSTATE"
+export ATUIN_HOME="$DATA/atuin"
+# atuin: start its history from zsh's, once.
+if command -v atuin >/dev/null && [ ! -e "$ATUIN_HOME/data/history.db" ] && [ -s "$XSTATE/zsh/history" ]; then
+  HISTFILE="$XSTATE/zsh/history" atuin import zsh >/dev/null 2>&1 \
+    && ok "atuin: imported your zsh history" || warn "atuin could not import the zsh history"
+fi
+# yazi: its plugins and flavors, as listed in yazi/package.toml.
+if command -v ya >/dev/null; then
+  ya pkg install >/dev/null 2>&1 && ok "yazi plugins" || warn "could not install the yazi plugins (ya pkg install)"
+fi
+# Neovim: LazyVim and its plugins (otherwise they download on the first start).
+if command -v nvim >/dev/null; then
+  info "Installing Neovim's plugins (LazyVim); this takes a minute the first time."
+  nvim --headless "+Lazy! sync" +qa >/dev/null 2>&1 && ok "Neovim plugins" \
+    || warn "Neovim's plugins didn't all install; they finish on its first start"
+fi
+
 # ---------------------------------------------------------------- 5. ~/.ssh → OneDrive
 
 step "~/.ssh → OneDrive/$SSH_DIR_NAME"
 if skip ssh; then
-  warn "skipped (DOTFILES_SKIP)"
+  skipped
 else
   if [ -L "$HOME/.ssh" ] && [ -d "$HOME/.ssh" ] && [ "$(basename "$(readlink "$HOME/.ssh")")" = "$SSH_DIR_NAME" ]; then
     ok "already linked → $(readlink "$HOME/.ssh" | sed "s|$HOME|~|")"
@@ -307,7 +517,7 @@ fi
 CODEX_HOME_DIR="$CONFIG/codex"
 step "$(pretty "$CODEX_HOME_DIR") → OneDrive/$CODEX_DIR_NAME"
 if skip codex; then
-  warn "skipped (DOTFILES_SKIP)"
+  skipped
 elif [ -L "$CODEX_HOME_DIR" ] && [ -d "$CODEX_HOME_DIR" ] && [ "$(basename "$(readlink "$CODEX_HOME_DIR")")" = "$CODEX_DIR_NAME" ]; then
   ok "already linked → $(readlink "$CODEX_HOME_DIR" | sed "s|$HOME|~|")"
 elif ! pick_onedrive; then
@@ -327,52 +537,13 @@ if ! skip codex; then
   elif [ -L "$HOME/.codex" ]; then
     backup "$HOME/.codex"
   fi
-
-  # Apps opened from the Dock or Finder (ChatGPT, VS Code) don't read zsh's
-  # files, so a login item sets CODEX_HOME for the whole session at each login.
-  AGENT_LABEL="local.dotfiles.codex-home"
-  AGENT="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
-  mkdir -p "${AGENT%/*}"
-  cat > "$AGENT.tmp" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>$AGENT_LABEL</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/launchctl</string>
-    <string>setenv</string>
-    <string>CODEX_HOME</string>
-    <string>$CODEX_HOME_DIR</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-</dict>
-</plist>
-PLIST
-  if cmp -s "$AGENT.tmp" "$AGENT"; then
-    rm -f "$AGENT.tmp"
-    ok "login item sets CODEX_HOME for apps"
-  else
-    mv "$AGENT.tmp" "$AGENT"
-    launchctl bootout "gui/$(id -u)/$AGENT_LABEL" 2>/dev/null || true
-    if launchctl bootstrap "gui/$(id -u)" "$AGENT" 2>/dev/null; then
-      ok "login item sets CODEX_HOME for apps ($(pretty "$AGENT"))"
-    else
-      warn "could not load $(pretty "$AGENT"); it takes effect at the next login"
-    fi
-  fi
-  # Now as well, for apps opened from here on (already open ones need a restart).
-  launchctl setenv CODEX_HOME "$CODEX_HOME_DIR" 2>/dev/null || true
 fi
 
 # ---------------------------------------------------------------- 7. Git & GitHub
 
 step "Git & GitHub"
 if skip github; then
-  warn "skipped (DOTFILES_SKIP)"
+  skipped
 else
   LOCAL="$DOTFILES/git/local"
   cur_name="$(git config -f "$LOCAL" user.name 2>/dev/null || true)"
@@ -467,9 +638,9 @@ fi
 
 # ---------------------------------------------------------------- 8. macOS settings
 
-step "macOS settings (Appearance, Desktop & Dock, Accessibility, Trackpad)"
+step "macOS settings (Desktop & Dock, Finder, Keyboard, Trackpad, screenshots, ...)"
 if skip macos; then
-  warn "skipped (DOTFILES_SKIP)"
+  skipped
 else
   if "$DOTFILES/macos/settings.sh"; then
     ok "applied (some need a log out to take full effect)"
@@ -479,6 +650,15 @@ else
 fi
 
 # ---------------------------------------------------------------- 9. Debloat
+
+step "Turn off Siri, suggestions, personalised ads and Game Center"
+if skip debloat; then
+  skipped
+elif "$DOTFILES/macos/debloat.sh"; then
+  ok "done (the background agents stop at your next login)"
+else
+  warn "done, except the ones above"
+fi
 
 # Only the Apple apps installed from the App Store can go. Safari, Mail, Music,
 # Photos, News, Stocks and the rest live on the sealed, read-only system
@@ -492,8 +672,8 @@ trash() {
   mv "$src" "$dest" 2>/dev/null || sudo mv "$src" "$dest"
 }
 
-if skip debloat; then
-  warn "skipped (DOTFILES_SKIP)"
+if skip trash; then
+  skipped
 else
   found=()
   for app in GarageBand iMovie Keynote Numbers Pages; do
@@ -525,9 +705,20 @@ else
   fi
 fi
 
+# ---------------------------------------------------------------- 11. Theme
+
+step "Theme (colours for every tool, macOS appearance, wallpaper)"
+if skip theme; then
+  skipped
+elif zsh "$DOTFILES/bin/theme" apply; then
+  info "${DIM}Change it any time with: theme${N}"
+else
+  warn "the theme didn't fully apply; run: theme apply"
+fi
+
 # ---------------------------------------------------------------- done
 
-step "Done"
+finish
 [ -d "$BACKUP" ] && info "Replaced files are in $(pretty "$BACKUP")"
 if [ "${SHELL##*/}" != "zsh" ]; then
   chsh -s /bin/zsh && ok "default shell set to zsh"

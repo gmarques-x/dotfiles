@@ -1,38 +1,56 @@
 # Prompt without icons, for Terminal.app (which can't draw Nerd Font glyphs):
 # the same blocks and colours as starship.toml, with square ends and no arrows.
-add_newline = true
-format = """[ ](bg:#88C0D0)$username$directory$git_branch$git_status$time[ ](bg:#D08770) $character"""
+palette = "theme"
+format = """$username$directory$git_branch$git_status$python$nodejs$time $character"""
 
 [username]
 show_always = true
-style_user = "bg:#88C0D0 fg:#2E3440"
-style_root = "bg:#88C0D0 fg:#2E3440"
+style_user = "bg:red fg:crust"
+style_root = "bg:red fg:crust"
 format = "[ $user ]($style)"
 
 [directory]
-style = "bg:#A3BE8C fg:#2E3440"
-read_only_style = "bg:#A3BE8C fg:#2E3440"
-read_only = " (read-only)"
-format = "[ $path]($style)[$read_only]($read_only_style)[ ]($style)"
+style = "bg:peach fg:crust"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
 
 [git_branch]
-style = "bg:#EBCB8B fg:#2E3440"
+style = "bg:yellow fg:crust"
 symbol = ""
-format = "[ $symbol$branch ]($style)"
+format = "[ $branch ]($style)"
 
 [git_status]
-style = "bg:#EBCB8B fg:#2E3440"
-untracked = "?"
-modified = "!"
-staged = "+"
+style = "bg:yellow fg:crust"
 format = "([$all_status$ahead_behind ]($style))"
+
+[python]
+style = "bg:green fg:crust"
+format = "[ py( $version) ]($style)"
+
+[nodejs]
+style = "bg:green fg:crust"
+format = "[ node( $version) ]($style)"
 
 [time]
 disabled = false
-style = "bg:#D08770 fg:#2E3440"
-time_format = "%H:%M"
+time_format = "%R"
+style = "bg:lavender fg:crust"
 format = "[ $time ]($style)"
 
 [character]
-success_symbol = "[❯](fg:#D8DEE9)"
-error_symbol = "[❯](fg:#BF616A)"
+success_symbol = "[❯](bold fg:green)"
+error_symbol = "[❯](bold fg:red)"
+
+# Colours for the names above. `theme` writes a copy of this file with them
+# replaced (theme-plain.toml, not tracked); these are Nord's.
+# >>> theme
+[palettes.theme]
+red = "#bf616a"
+peach = "#d08770"
+yellow = "#ebcb8b"
+green = "#a3be8c"
+sapphire = "#8fbcbb"
+lavender = "#81a1c1"
+crust = "#242933"
+# <<< theme

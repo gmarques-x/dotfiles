@@ -1,0 +1,25 @@
+" Minimal vim, kept for quick edits. Vim 9.1 reads this from ~/.config/vim/vimrc;
+" everything it writes goes to the XDG folders, not ~/.vim or ~/.viminfo.
+set nocompatible
+let s:state = (empty($XDG_STATE_HOME) ? $HOME . '/.local/state' : $XDG_STATE_HOME) . '/vim'
+let s:data  = (empty($XDG_DATA_HOME)  ? $HOME . '/.local/share' : $XDG_DATA_HOME)  . '/vim'
+call mkdir(s:state . '/undo', 'p', 0700)
+let &viminfofile = s:state . '/viminfo'
+let &undodir = s:state . '/undo'
+let &packpath = s:data . ',' . &packpath   " colourschemes from `theme` live in <data>/pack
+
+syntax on
+filetype plugin indent on
+set number relativenumber cursorline
+set expandtab shiftwidth=2 tabstop=2 smartindent
+set ignorecase smartcase incsearch hlsearch
+set clipboard=unnamed mouse=a
+set noswapfile nobackup undofile
+set scrolloff=5 signcolumn=yes laststatus=1 noshowmode
+set termguicolors
+
+" Keep the terminal's background behind every colourscheme
+autocmd ColorScheme * hi Normal guibg=NONE ctermbg=NONE | hi SignColumn guibg=NONE | hi LineNr guibg=NONE | hi EndOfBuffer guibg=NONE
+
+" Colourscheme: theme.vim, written by `theme` (not tracked by git)
+silent! source <sfile>:h/theme.vim

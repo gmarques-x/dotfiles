@@ -1,0 +1,17 @@
+# htop. Colours follow the terminal's palette (color_scheme 0), so they change with `theme`.
+# htop rewrites this file when you change settings with F2.
+htop_version=3.5.3
+config_reader_min_version=3
+hide_kernel_threads=1
+hide_userland_threads=1
+show_program_path=0
+highlight_base_name=1
+highlight_megabytes=1
+highlight_threads=1
+shadow_other_users=1
+tree_view=0
+color_scheme=0
+enable_mouse=1
+delay=15
+header_margin=1
+screen_tabs=1

@@ -1,0 +1,8 @@
+# lazygit. Colours: theme.yml, written by `theme` (LG_CONFIG_FILE in zsh loads both).
+gui:
+  nerdFontsVersion: "3"
+  showBottomLine: false
+  border: rounded
+git:
+  diffRenderers:
+    - command: delta --paging=never

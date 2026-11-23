@@ -4,6 +4,21 @@ alias zalias='${EDITOR:-vim} "$ZDOTDIR/conf.d/20-aliases.zsh"'   # edit this fil
 alias zedit='${EDITOR:-vim} "$ZDOTDIR"'                          # edit the zsh config folder
 alias cls='clear && DOTFILES_FETCHED= exec zsh -l'               # clear and reload, like a new window
 
+# The dotfiles: go there, or pull them and apply what changed
+# (dots-sync --all re-applies everything; --dry-run only shows what would run).
+alias dots='cd ~/Developer/dotfiles'
+dots-sync() {
+  command dots-sync "$@" && [[ " $* " != *" --dry-run "* && " $* " != *" -n "* ]] && exec zsh
+}
+alias brewup='brew update && brew upgrade'
+
+# Places
+alias dev='cd ~/Developer'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+mkcd() { mkdir -p -- "$1" && builtin cd -- "$1" }   # make a folder and go into it
+
 # Listings: folders first, then files, each A→Z ignoring case. Icons only where
 # the terminal can draw them (not Terminal.app). The originals stay as \ls, \cat.
 if (( $+commands[eza] )); then
@@ -53,6 +68,19 @@ fi
 if (( $+commands[bat] )); then
   alias cat='bat --paging=auto'  # pages only files longer than the window
 fi
+
+# Better versions of the usual tools. The originals stay as \top, \du, \df.
+(( $+commands[htop] )) && alias top='htop'
+(( $+commands[dust] )) && alias du='dust'
+(( $+commands[duf] ))  && alias df='duf'
+
+# Editors and development
+(( $+commands[nvim] )) && alias vi='nvim'
+(( $+commands[code] )) && alias vs='code'
+(( $+commands[lazygit] )) && alias lg='lazygit'
+alias g='git'
+alias python='python3'
+alias pip='pip3'
 
 # finder: yazi, and when you quit, the shell moves to the folder you were in.
 if (( $+commands[yazi] )); then

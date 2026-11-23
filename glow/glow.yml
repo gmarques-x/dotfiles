@@ -1,0 +1,7 @@
+# glow. Its colours come from GLOW_STYLE (set by the theme in zsh), which points at
+# theme.json here, written by `theme`. Glow only reads absolute style paths, hence the variable.
+style: "auto"   # used when GLOW_STYLE is not set
+mouse: false
+pager: false
+width: 80
+all: false

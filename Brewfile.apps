@@ -1,0 +1,17 @@
+# Apps. install.sh shows this list to pick from (space marks an app, Return
+# installs the marked ones) and remembers the choice for dots-sync. Apps you
+# unmark later are left installed; remove them with: brew uninstall --cask <name>
+cask "ghostty"             # Ghostty: the terminal these dotfiles set up
+cask "google-chrome"       # Google Chrome (made the default browser)
+cask "visual-studio-code"  # Visual Studio Code
+cask "keka"                # Keka: archives
+cask "balenaetcher"        # balenaEtcher: writes disk images to USB sticks and SD cards
+cask "whatsapp"            # WhatsApp
+cask "microsoft-teams"     # Microsoft Teams
+cask "steam"               # Steam (an Intel app: Rosetta is installed with it)
+cask "modrinth"            # Modrinth: Minecraft launcher
+cask "wireshark-app"       # Wireshark, with tshark and its other command-line tools (asks for your password)
+cask "chatgpt"             # ChatGPT desktop
+cask "codex"               # Codex: OpenAI's coding agent, in the terminal
+cask "claude"              # Claude desktop
+cask "claude-code"         # Claude Code: Anthropic's coding agent, in the terminal

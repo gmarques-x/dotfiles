@@ -1,0 +1,49 @@
+[[plugin.deps]]
+use = "yazi-rs/plugins:git"
+rev = "896fa5a"
+hash = "347cc6b190eb0c2fd60513cc7ae37412"
+
+[[plugin.deps]]
+use = "llanosrocas/githead"
+rev = "317d09f"
+hash = "41dc37a724b2afd21da4f1ea6c1182d8"
+
+[[plugin.deps]]
+use = "Lil-Dank/lazygit"
+rev = "e73fd74"
+hash = "6ea5f37c7f219671ec504cb8311f889d"
+
+[[plugin.deps]]
+use = "yazi-rs/plugins:piper"
+rev = "896fa5a"
+hash = "d1e0499cae5f3aeb628c267616d4b682"
+
+[[flavor.deps]]
+use = "Chromium-3-Oxide/everforest-medium"
+rev = "e1ead7b"
+hash = "f7dc46200e53da5e94858630184a9220"
+
+[[flavor.deps]]
+use = "bennyyip/gruvbox-dark"
+rev = "71b03f6"
+hash = "fc8fb278e5e1ede76b7a57c76a6db28b"
+
+[[flavor.deps]]
+use = "yazi-rs/flavors:catppuccin-mocha"
+rev = "1183892"
+hash = "ce320f877fe709b189433941aba747c4"
+
+[[flavor.deps]]
+use = "yazi-rs/flavors:catppuccin-latte"
+rev = "1183892"
+hash = "273ee53369ccfbf7feb9b0c65e387ed8"
+
+[[flavor.deps]]
+use = "yazi-rs/flavors:catppuccin-frappe"
+rev = "38c08d8"
+hash = "7d6e604c6f458f57e5c27d19163203c5"
+
+[[flavor.deps]]
+use = "yazi-rs/flavors:catppuccin-macchiato"
+rev = "38c08d8"
+hash = "24f465f7b5df0a91b8e7190d926f2bc2"

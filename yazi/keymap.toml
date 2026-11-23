@@ -1,0 +1,5 @@
+# lazygit.yazi: g then i opens lazygit in the current repo; quitting it comes back here
+[[mgr.prepend_keymap]]
+on   = [ "g", "i" ]
+run  = "plugin lazygit"
+desc = "Open lazygit"

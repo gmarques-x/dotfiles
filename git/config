@@ -1,10 +1,30 @@
 [include]
     # Written by install.sh: [user] name, email, signingkey
     path = ~/.config/git/local
+[include]
+    # Written by `theme`: delta's colours
+    path = ~/.config/git/theme
 [init]
     defaultBranch = main
+[core]
+    pager = delta
+[interactive]
+    diffFilter = delta --color-only
+[delta]
+    navigate = true          # n / N jump between files
+    line-numbers = true
+    hunk-header-style = omit
 [pull]
     rebase = true
+[rebase]
+    autoStash = true         # pull and rebase over uncommitted changes
+[rerere]
+    enabled = true           # remember how a conflict was resolved
+[diff]
+    algorithm = histogram
+    colorMoved = default
+[merge]
+    conflictStyle = zdiff3
 [push]
     autoSetupRemote = true
 [fetch]

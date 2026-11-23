@@ -5,3 +5,34 @@ sort_by = "alphabetical"
 sort_sensitive = false
 sort_dir_first = true
 show_hidden = false
+
+# git.yazi: each file's and folder's git status, as a sign in the file list (init.lua sets it up)
+[[plugin.prepend_fetchers]]
+url   = "*"
+run   = "git"
+group = "git"
+
+[[plugin.prepend_fetchers]]
+url   = "*/"
+run   = "git"
+group = "git"
+
+# piper.yazi: Markdown previews formatted by glow, in the theme's colours (GLOW_STYLE).
+# PDF, SVG, HEIC, video and archives use Yazi's own previewers (poppler, resvg,
+# imagemagick, ffmpeg, sevenzip from the Brewfile).
+[[plugin.prepend_previewers]]
+url = "*.md"
+run = 'piper -- CLICOLOR_FORCE=1 glow -w=$w "$1"'
+
+# Openers for the O (open interactively) menu. Enter uses the first one in each
+# list: VS Code for text and CSV, the default browser for HTML.
+[opener]
+vscode  = [{ run = 'code "$@"', orphan = true, desc = "VS Code", for = "unix" }]
+browser = [{ run = 'open "$@"', orphan = true, desc = "Browser", for = "macos" }]
+
+[open]
+prepend_rules = [
+	{ url = "*.{html,htm}", use = [ "browser", "vscode", "reveal" ] },
+	{ url = "*.{md,markdown,json,jsonc,yaml,yml,toml,txt,log,ini,conf,env,csv}", use = [ "vscode", "edit", "reveal" ] },
+	{ mime = "text/*", use = [ "vscode", "edit", "reveal" ] },
+]

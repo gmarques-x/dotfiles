@@ -7,3 +7,22 @@ zsh/.zsh_sessions
 zsh/.zsh_history
 zsh/.zcompdump*
 zsh/conf.d/local.zsh
+# Written by `theme` for this Mac's theme (bin/theme)
+ghostty/theme.conf
+zsh/theme.zsh
+eza/theme.yml
+starship/theme.toml
+starship/theme-plain.toml
+git/theme
+lazygit/theme.yml
+nvim/lua/theme.lua
+vim/theme.vim
+atuin/themes/
+glow/theme.json
+yazi/theme.toml
+# Downloaded from yazi/package.toml by `ya pkg install`
+yazi/plugins/
+yazi/flavors/
+# Neovim and lazygit state that may land next to their configs
+nvim/lazy-lock.json
+lazygit/state.yml

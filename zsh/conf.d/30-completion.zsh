@@ -11,3 +11,7 @@ zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path "$XDG_CACHE_HOME/zsh/zcompcache"
+
+# `theme <Tab>` lists the themes (bin/theme)
+_theme() { compadd list current apply ${commands[theme]:A:h:h}/themes/*.sh(N:t:r) }
+(( $+commands[theme] )) && compdef _theme theme
