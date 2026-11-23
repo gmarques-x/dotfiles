@@ -448,52 +448,6 @@ if [ -f "$HOME/.claude.json" ]; then
   backup "$HOME/.claude.json" && ok "moved ~/.claude.json into $(pretty "$CLAUDE_DIR")"
 fi
 
-# Apps opened from the Dock or Finder (ChatGPT, Claude, VS Code) don't read zsh's
-# files, so a login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for the whole
-# session at each login.
-CODEX_HOME_DIR="$CONFIG/codex"
-AGENT_LABEL="local.dotfiles.environment"
-AGENT="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
-mkdir -p "${AGENT%/*}"
-OLD_AGENT="$HOME/Library/LaunchAgents/local.dotfiles.codex-home.plist"   # earlier versions: Codex only
-if [ -f "$OLD_AGENT" ]; then
-  launchctl bootout "gui/$(id -u)/local.dotfiles.codex-home" 2>/dev/null || true
-  rm -f "$OLD_AGENT"
-fi
-cat > "$AGENT.tmp" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>$AGENT_LABEL</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/sh</string>
-    <string>-c</string>
-    <string>/bin/launchctl setenv CODEX_HOME "$CODEX_HOME_DIR"; /bin/launchctl setenv CLAUDE_CONFIG_DIR "$CLAUDE_DIR"</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-</dict>
-</plist>
-PLIST
-if cmp -s "$AGENT.tmp" "$AGENT"; then
-  rm -f "$AGENT.tmp"
-  ok "login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for apps"
-else
-  mv "$AGENT.tmp" "$AGENT"
-  launchctl bootout "gui/$(id -u)/$AGENT_LABEL" 2>/dev/null || true
-  if launchctl bootstrap "gui/$(id -u)" "$AGENT" 2>/dev/null; then
-    ok "login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for apps ($(pretty "$AGENT"))"
-  else
-    warn "could not load $(pretty "$AGENT"); it takes effect at the next login"
-  fi
-fi
-# Now as well, for apps opened from here on (already open ones need a restart).
-launchctl setenv CODEX_HOME "$CODEX_HOME_DIR" 2>/dev/null || true
-launchctl setenv CLAUDE_CONFIG_DIR "$CLAUDE_DIR" 2>/dev/null || true
-
 # The tools' own downloads, with the same folders zsh gives them (zsh/.zshenv).
 export XDG_CONFIG_HOME="$CONFIG" XDG_CACHE_HOME="$CACHE" XDG_DATA_HOME="$DATA" XDG_STATE_HOME="$XSTATE"
 export ATUIN_HOME="$DATA/atuin"
@@ -573,6 +527,60 @@ if ! skip codex; then
     backup "$HOME/.codex"
   fi
 fi
+
+# Apps opened from the Dock or Finder (ChatGPT, Claude, VS Code) don't read zsh's
+# files, so a login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for the whole
+# session at each login.
+CODEX_DB_DIR="$XSTATE/codex/sqlite"
+AGENT_LABEL="local.dotfiles.environment"
+AGENT="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
+mkdir -p "${AGENT%/*}"
+OLD_AGENT="$HOME/Library/LaunchAgents/local.dotfiles.codex-home.plist"   # earlier versions: Codex only
+if [ -f "$OLD_AGENT" ]; then
+  launchctl bootout "gui/$(id -u)/local.dotfiles.codex-home" 2>/dev/null || true
+  rm -f "$OLD_AGENT"
+fi
+CODEX_MIGRATION=""
+if ! skip codex || [ -f "$CODEX_DB_DIR/.migration-complete" ]; then
+  CODEX_MIGRATION="; /usr/bin/python3 \"$DOTFILES/bin/codex-sqlite-home.py\" \"$CODEX_HOME_DIR\" \"$CODEX_DB_DIR\" &amp;&amp; /bin/launchctl setenv CODEX_SQLITE_HOME \"$CODEX_DB_DIR\""
+fi
+cat > "$AGENT.tmp" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$AGENT_LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>/bin/launchctl setenv CODEX_HOME "$CODEX_HOME_DIR"; /bin/launchctl setenv CLAUDE_CONFIG_DIR "$CLAUDE_DIR"$CODEX_MIGRATION</string>
+  </array>
+  <key>KeepAlive</key>
+  <dict><key>SuccessfulExit</key><false/></dict>
+  <key>ThrottleInterval</key>
+  <integer>15</integer>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+PLIST
+if cmp -s "$AGENT.tmp" "$AGENT"; then
+  rm -f "$AGENT.tmp"
+  ok "login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for apps"
+else
+  mv "$AGENT.tmp" "$AGENT"
+  launchctl bootout "gui/$(id -u)/$AGENT_LABEL" 2>/dev/null || true
+  if launchctl bootstrap "gui/$(id -u)" "$AGENT" 2>/dev/null; then
+    ok "login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for apps ($(pretty "$AGENT"))"
+  else
+    warn "could not load $(pretty "$AGENT"); it takes effect at the next login"
+  fi
+fi
+# Now as well, for apps opened from here on (already open ones need a restart).
+launchctl setenv CODEX_HOME "$CODEX_HOME_DIR" 2>/dev/null || true
+launchctl setenv CLAUDE_CONFIG_DIR "$CLAUDE_DIR" 2>/dev/null || true
 
 # ---------------------------------------------------------------- 7. Git & GitHub
 

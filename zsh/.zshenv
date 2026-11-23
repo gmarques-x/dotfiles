@@ -12,6 +12,9 @@ export SHELL_SESSION_DIR="$XDG_STATE_HOME/zsh/sessions"   # Terminal.app's per-w
 export LESSHISTFILE="$XDG_STATE_HOME/less/history"
 export PYTHON_HISTORY="$XDG_STATE_HOME/python/history"
 export CODEX_HOME="$XDG_CONFIG_HOME/codex"                # linked to OneDrive by install.sh
+if [[ -f "$XDG_STATE_HOME/codex/sqlite/.migration-complete" ]]; then
+  export CODEX_SQLITE_HOME="$XDG_STATE_HOME/codex/sqlite"
+fi
 export CLAUDE_CONFIG_DIR="$XDG_CONFIG_HOME/claude"        # Claude Code; otherwise ~/.claude and ~/.claude.json
 export ATUIN_HOME="$XDG_DATA_HOME/atuin"                  # history; otherwise ~/.atuin
 export WGETRC="$XDG_CONFIG_HOME/wget/wgetrc"              # keeps ~/.wget-hsts out of ~/

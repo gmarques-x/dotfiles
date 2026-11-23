@@ -5,6 +5,7 @@ cask "ghostty"             # Ghostty: the terminal these dotfiles set up
 cask "google-chrome"       # Google Chrome (made the default browser)
 cask "visual-studio-code"  # Visual Studio Code
 cask "keka"                # Keka: archives
+cask "rectangle"           # Rectangle: window management
 cask "balenaetcher"        # balenaEtcher: writes disk images to USB sticks and SD cards
 cask "whatsapp"            # WhatsApp
 cask "microsoft-teams"     # Microsoft Teams

@@ -165,6 +165,16 @@ hotkey_off() { w com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$1" "
 hotkey 29  true 97  0 1179648   # Screenshots: the whole screen to the clipboard, ⌘⇧A
 hotkey 31  true 115 1 1179648   # Screenshots: a selected area to the clipboard, ⌘⇧S
 hotkey 184 true 100 2 1179648   # Screenshots: the options toolbar, ⌘⇧D
+# Keyboard Shortcuts > Windows (IDs from KeyboardSettings' DefaultShortcutsTable).
+hotkey 237 true 13  36 655360   # Fill: ⌥⇧Return
+hotkey 240 true 104 4  655360   # Left half: ⌥⇧H
+hotkey 241 true 108 37 655360   # Right half: ⌥⇧L
+hotkey 242 true 107 40 655360   # Top half: ⌥⇧K
+hotkey 243 true 106 38 655360   # Bottom half: ⌥⇧J
+hotkey 244 true 117 32 655360   # Top-left quarter: ⌥⇧U
+hotkey 245 true 105 34 655360   # Top-right quarter: ⌥⇧I
+hotkey 246 true 110 45 655360   # Bottom-left quarter: ⌥⇧N
+hotkey 247 true 109 46 655360   # Bottom-right quarter: ⌥⇧M
 hotkey_off 36                   # Show Desktop (F11): off
 hotkey_off 37                   # Show Desktop, its other key: off
 /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u 2>/dev/null || true
