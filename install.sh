@@ -102,11 +102,11 @@ checklist() {
   local i line
   for i in "${!STEPS[@]}"; do
     case "${STATUS[$i]:-}" in
-      done) line="$G✓$N ${STEPS[$i]}" ;;
+      done) line="${G}✓$N ${STEPS[$i]}" ;;
       warn) line="$Y!$N ${STEPS[$i]} ${DIM}(see the warnings above)$N" ;;
-      skip) line="$DIM– ${STEPS[$i]} (skipped)$N" ;;
-      fail) line="$R✗ ${STEPS[$i]}$N" ;;
-      *) if [ "$i" -eq "$CUR" ]; then line="$B$C▸ ${STEPS[$i]}$N"; else line="$DIM○ ${STEPS[$i]}$N"; fi ;;
+      skip) line="${DIM}– ${STEPS[$i]} (skipped)$N" ;;
+      fail) line="${R}✗ ${STEPS[$i]}$N" ;;
+      *) if [ "$i" -eq "$CUR" ]; then line="$B${C}▸ ${STEPS[$i]}$N"; else line="${DIM}○ ${STEPS[$i]}$N"; fi ;;
     esac
     printf '    %s\n' "$line"
   done
