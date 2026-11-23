@@ -85,7 +85,7 @@ Only three things the dotfiles set up stay directly in `~/`: `~/.zshenv` (zsh re
 
 ## Keeping Macs in sync
 
-`dots-sync` pulls this repo and applies what changed: it re-links the configs, and re-runs the Brewfile, the macOS settings, debloat or the theme only when their files changed, without asking anything (the app choice, git identity and OneDrive steps aren't repeated). `dots-sync --all` re-applies everything; `dots-sync --dry-run` only shows what would run. The shell reloads afterwards.
+`dots-sync` syncs this repo both ways: it commits every change made on this Mac (one commit, "Update from <Mac name>", listing the files), pulls what other Macs pushed (rebasing your commit on top), pushes, and then applies what came in. Applying re-links the configs, and re-runs the Brewfile, the macOS settings, debloat or the theme only when their files changed, without asking anything (the app choice, git identity and OneDrive steps aren't repeated). `dots-sync --all` re-applies everything; `dots-sync --dry-run` only shows what would be committed and applied. The shell reloads afterwards.
 
 ## zsh
 
@@ -95,7 +95,7 @@ Only three things the dotfiles set up stay directly in `~/`: `~/.zshenv` (zsh re
 | --- | --- |
 | `05-theme` | the theme's colours for fzf, autosuggestions and highlighting, `BAT_THEME`, `GLOW_STYLE`; open shells pick up a new theme at their next prompt |
 | `10-history` | 50k-line shared history in `~/.local/state/zsh/history` |
-| `20-aliases` | `ls`/`ll`/`lt` (eza), `cat` (bat), `top` (htop), `du` (dust), `df` (duf), `vi` (nvim), `vs` (VS Code), `g` (git), `lg` (lazygit), `python`/`pip` (python3/pip3), `dev`, `dots`, `..`/`...`/`....`, `mkcd`, `finder` (yazi that leaves you in the folder you quit in), `dots-sync`, `brewup`, `zalias`, `zedit`, `cls` |
+| `20-aliases` | `ls`/`ll`/`lt` (eza), `cat` (bat), `top` (htop), `du` (dust), `df` (duf), `vi` (nvim), `vs` (VS Code), `g` (git), `lg` (lazygit), `python`/`pip` (python3/pip3), `dev`, `dots`, `..`/`...`/`....`, `mkcd`, `finder` (yazi that leaves you in the folder you quit in), `dots-sync` (commit, pull, push and apply), `brewup`, `zalias`, `zedit`, `cls` |
 | `30-completion` | completion with Homebrew's completions, case-insensitive, menu select; `theme <Tab>` lists the themes |
 | `40-tools` | zoxide as `cd`; fzf on ⌃T files, ⌥C folders and ⌃G git commits (their hashes go on the command line), and on anything piped into `fzf`; atuin on ⌃R history |
 | `85-autosuggest` | history suggestions; → accepts |

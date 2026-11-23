@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Pull the dotfiles and apply what changed (the zsh function `dots-sync` runs this,
-# then reloads the shell).
-#   dots-sync            pull, then apply the changes
-#   dots-sync --all      pull, then re-apply everything
-#   dots-sync --dry-run  pull, then only show what would be applied
+# Sync the dotfiles both ways: commit every change made on this Mac, pull what
+# other Macs pushed, push, then apply what came in (the zsh function `dots-sync`
+# runs this, then reloads the shell).
+#   dots-sync            commit, pull, push, then apply the changes
+#   dots-sync --all      the same, then re-apply everything
+#   dots-sync --dry-run  only show what would be committed, then pull and show what would be applied
 # Applying is install.sh without its questions: the OneDrive wizard, ~/.ssh,
 # Codex's folder, GitHub and removing Apple apps are never re-run from here.
 set -uo pipefail
@@ -22,14 +23,33 @@ B=$'\033[1m' G=$'\033[32m' R=$'\033[31m' N=$'\033[0m'
 ok()   { printf '  %s✓%s %s\n' "$G" "$N" "$*"; }
 fail() { printf '  %s✗%s %s\n' "$R" "$N" "$*"; }
 
-before=$(git -C "$DOT" rev-parse HEAD)
-if ! git -C "$DOT" pull --quiet; then
+# This Mac's changes: everything, in one commit (files git ignores stay out).
+if [[ -n "$(git -C "$DOT" status --porcelain)" ]]; then
+  printf '\n%sChanges on this Mac%s\n' "$B" "$N"
+  git -C "$DOT" status --short | sed 's/^/  /'
+  if [[ -z $DRY ]]; then
+    mac="$(scutil --get ComputerName 2>/dev/null || hostname -s)"
+    git -C "$DOT" add -A &&
+      git -C "$DOT" commit --quiet -m "Update from $mac" -m "$(git -C "$DOT" diff --cached --name-status)" \
+      && ok "Committed." || { fail "git commit failed (see above)"; exit 1; }
+  fi
+fi
+
+# What came in is measured on the remote branch, so this Mac's own commit
+# (replayed on top by the pull) doesn't count as new.
+before=$(git -C "$DOT" rev-parse '@{u}')
+if ! git -C "$DOT" pull --rebase --autostash --quiet; then
   fail "git pull failed. Check: git -C $DOT status (then run dots-sync again)"
   exit 1
 fi
-after=$(git -C "$DOT" rev-parse HEAD)
+after=$(git -C "$DOT" rev-parse '@{u}')
 
-if [[ $before == "$after" && -z $ALL ]]; then ok "Already up to date."; exit 0; fi
+# Push this Mac's commits (if any), on top of what was pulled.
+if [[ -z $DRY && -n "$(git -C "$DOT" log --oneline '@{u}..' 2>/dev/null)" ]]; then
+  git -C "$DOT" push --quiet && ok "Pushed." || { fail "git push failed. Check: git -C $DOT status"; exit 1; }
+fi
+
+if [[ $before == "$after" && -z $ALL ]]; then ok "Nothing new to apply."; exit 0; fi
 if [[ $before != "$after" ]]; then
   printf '\n%sNew changes%s\n' "$B" "$N"
   git -C "$DOT" log --format='  %h %s' "$before..$after"
