@@ -33,19 +33,22 @@ The installer runs these steps in order, and is safe to run again; finished step
 6. **`~/.claude`**: Claude Code's folder (settings, `CLAUDE.md`, skills, memory) becomes a link to the `claude` folder in your OneDrive, the same way as `~/.ssh`. `~/.claude.json` (app state and caches) stays on the Mac. Codex's `~/.codex/AGENTS.md` and Gemini's `~/.gemini/GEMINI.md` become links to the team instructions kept in `~/.claude/team/teammates/`.
 7. **Git and GitHub**: asks for your name and email, logs in to GitHub with `gh` in the browser, then picks your SSH key: `~/.ssh/id_ed25519` if it exists, otherwise any key in `~/.ssh` that GitHub already has for logging in (pointed at github.com in `~/.ssh/config.d/github`). It creates a new `id_ed25519` only when there's none, and asks first if `~/.ssh` isn't linked to OneDrive. It writes the git identity and makes sure the key is on GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
-8. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies the settings that differ from a fresh Mac:
-   - **Appearance**: blue accent, `#434C5E` highlight, scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass
-   - **Desktop & Dock**: Dock on the right, small, Scale effect, minimise into the app icon, no indicators or recents, only Ghostty and Chrome in it (set once); windows grouped by app; no desktop icons or widgets; documents never open as tabs; closing asks to keep changes
+8. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies these preferences:
+   - **Appearance**: system accent, yellow highlight, scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass
+   - **Language & Region**: English (US) first, Portuguese (Portugal) second, with Portugal as the region
+   - **Desktop & Dock**: small, auto-hiding Dock on the right, Scale effect, minimise into the app icon, no indicators or recents. On the first run, it pins Ghostty, Claude, ChatGPT, Gemini, Chrome and System Settings if installed. Mission Control groups windows by app, the desktop hides icons and widgets, documents use tabs only when requested, and closing asks whether to keep changes.
    - **Accessibility**: Everforest green pointer (`#A7C080`), Live Captions in JetBrains Mono 32
    - **Trackpad**: tap to click, tap-drag, natural scrolling off, App Exposé gesture on, Show Desktop gesture off
-   - **Control Center and menu bar**: battery percentage on, Energy Mode, Timer, Spotlight and Siri AI not in the menu bar, iPhone Live Activities on but not on the lock screen
+   - **Control Center and menu bar**: clock shows the day of the week and AM/PM, with the date when space allows. The menu bar shows battery percentage and hides Energy Mode, Timer, Spotlight and Siri AI. iPhone Live Activities are enabled and hidden on the lock screen.
    - **Spotlight and Siri**: results only from apps, files, folders, menu items, OneDrive and related content; "Help Apple improve Search" off
-   - **Finder**: all filename extensions, folders on top (windows and desktop), no disks on the desktop, new windows open your home folder, search the current folder, Trash emptied after 30 days without a warning, no tag tint on folders, small sidebar icons, toolbar without Group and Tags
-   - **Screenshots**: saved to a file, not the clipboard
+   - **Finder**: List view with the path and status bars visible, all filename extensions, folders on top (windows and desktop), no disks on the desktop, new windows open your home folder, search the current folder, Trash emptied after 30 days without a warning, no tag tint on folders, small sidebar icons, toolbar without Group and Tags
+   - **Screen capture**: screenshots go to the clipboard and screen recordings save to a file
    - **Battery**: display turns off after 10 minutes on battery (asks for your password when it changes it)
    - **Displays**: built-in display at "More Space", 1920 × 1243 (with `displayplacer` from the Brewfile)
 
    Run it on its own with `macos/settings.sh`. Some settings need a log out. If the Accessibility ones report an error, give your terminal Full Disk Access and run it again.
+
+   In System Settings, choose **Google Chrome** under **Desktop & Dock → Default web browser** and **Portuguese** under **Keyboard → Text Input → Edit**. Set up your Finder sidebar favorites in Finder if needed.
 
 9. **Debloat**: lists whichever of GarageBand, iMovie, Keynote, Numbers and Pages are installed, plus GarageBand's sound library (several GB, kept if Logic Pro is installed), and after you confirm moves them to the Trash. They can be reinstalled from the App Store. The other built-in apps (Safari, Mail, Music, Photos, News, Stocks, ...) are on the read-only system volume, so macOS doesn't let them be removed.
 

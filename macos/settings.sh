@@ -6,20 +6,33 @@
 
 set -uo pipefail
 failed=0
-w() { defaults write "$@" 2>/dev/null || { printf '    ! could not set %s %s\n' "$1" "$2" >&2; failed=1; }; }
+w() {
+  defaults write "$@" 2>/dev/null || {
+    printf '    ! could not set %s %s\n' "$1" "$2" >&2
+    failed=1
+    return 1
+  }
+}
 wh() { defaults -currentHost write "$@" 2>/dev/null || { printf '    ! could not set %s %s (this Mac)\n' "$1" "$2" >&2; failed=1; }; }
 
 # ---- Appearance
-w NSGlobalDomain AppleAccentColor -int 4                                # accent: blue
-w NSGlobalDomain AppleHighlightColor -string "0.262745 0.298039 0.368627 Other"  # highlight: #434C5E
+if defaults read NSGlobalDomain AppleAccentColor >/dev/null 2>&1; then
+  defaults delete NSGlobalDomain AppleAccentColor || failed=1           # use the system accent
+fi
+w NSGlobalDomain AppleHighlightColor -string "1.000000 0.937255 0.690196 Yellow"
 w NSGlobalDomain AppleShowScrollBars -string WhenScrolling              # scroll bars: when scrolling
 w NSGlobalDomain AppleReduceDesktopTinting -bool true                   # wallpaper tinting in windows: off
 w NSGlobalDomain NSGlassTintAmount -int 1                               # Liquid Glass: tinted
 w NSGlobalDomain NSTableViewDefaultSizeMode -int 1                      # sidebar icon size: small
 
+# ---- Language & Region
+w NSGlobalDomain AppleLanguages -array en-US pt-PT
+w NSGlobalDomain AppleLocale -string 'en_US@rg=ptzzzz'                   # English (US), region Portugal
+
 # ---- Desktop & Dock
 w com.apple.dock orientation -string right
 w com.apple.dock tilesize -int 33
+w com.apple.dock autohide -bool true
 w com.apple.dock mineffect -string scale
 w com.apple.dock minimize-to-application -bool true
 w com.apple.dock show-process-indicators -bool false
@@ -36,7 +49,7 @@ w com.apple.WindowManager EnableTiledWindowMargins -bool false          # tiled 
 w com.apple.WindowManager AppWindowGroupingBehavior -int 0              # Stage Manager: one window at a time
 w com.apple.WindowManager AutoHide -bool true                           # Stage Manager: hide recent apps
 
-# Dock apps: Ghostty and Chrome (whichever are installed). Done once per Mac,
+# Seed the Dock with the apps that are installed. Done once per Mac,
 # so later changes to the Dock stay.
 tile() {
   printf '<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>file://%s/</string><key>_CFURLStringType</key><integer>15</integer></dict></dict><key>tile-type</key><string>file-tile</string></dict>' "${1// /%20}"
@@ -44,17 +57,23 @@ tile() {
 state="$HOME/.local/state/dotfiles"
 if [ ! -f "$state/dock-apps-set" ]; then
   tiles=()
-  for app in "/Applications/Ghostty.app" "/Applications/Google Chrome.app"; do
+  for app in "/Applications/Ghostty.app" "/Applications/Claude.app" \
+    "/Applications/ChatGPT.app" "/Applications/Gemini.app" "/Applications/Google Chrome.app" \
+    "/System/Applications/System Settings.app"; do
     [ -d "$app" ] && tiles+=("$(tile "$app")")
   done
   if [ "${#tiles[@]}" -gt 0 ]; then
-    w com.apple.dock persistent-apps -array "${tiles[@]}"
-    w com.apple.dock persistent-others -array
-    mkdir -p "$state" && date +%F > "$state/dock-apps-set"
+    if w com.apple.dock persistent-apps -array "${tiles[@]}" &&
+      w com.apple.dock persistent-others -array; then
+      mkdir -p "$state" && date +%F > "$state/dock-apps-set" || failed=1
+    fi
   fi
 fi
 
 # ---- Control Center and menu bar
+w com.apple.menuextra.clock ShowAMPM -bool true
+w com.apple.menuextra.clock ShowDate -int 0                              # date: when space allows
+w com.apple.menuextra.clock ShowDayOfWeek -bool true
 wh com.apple.controlcenter BatteryShowPercentage -bool true             # battery: show percentage
 wh com.apple.controlcenter BatteryShowEnergyMode -int 0                 # battery: don't show Energy Mode
 wh com.apple.controlcenter Timer -int 8                                 # timer: don't show in menu bar
@@ -76,9 +95,13 @@ w com.apple.assistant.support "Search Queries Data Sharing Status" -int 2   # he
 w NSGlobalDomain AppleShowAllExtensions -bool true                      # show all filename extensions
 w NSGlobalDomain AppleDisableTagBasedIconTinting -bool true             # don't tint folders with tag colours
 w com.apple.finder NewWindowTarget -string PfHm                         # new windows: home folder
+w com.apple.finder FXPreferredViewStyle -string Nlsv                    # preferred view: List
+w com.apple.finder ShowPathbar -bool true
+w com.apple.finder ShowStatusBar -bool true
 w com.apple.finder FXDefaultSearchScope -string SCcf                    # search the current folder
 w com.apple.finder _FXSortFoldersFirst -bool true                       # folders on top: in windows
 w com.apple.finder _FXSortFoldersFirstOnDesktop -bool true              # ... and on the desktop
+w com.apple.finder ShowHardDrivesOnDesktop -bool false
 w com.apple.finder ShowExternalHardDrivesOnDesktop -bool false
 w com.apple.finder ShowRemovableMediaOnDesktop -bool false
 w com.apple.finder FXRemoveOldTrashItems -bool true                     # empty Trash items after 30 days
@@ -98,7 +121,8 @@ w com.apple.finder "NSToolbar Configuration Browser" '<dict>
 </dict>'
 
 # ---- Screenshots
-w com.apple.screencapture target-screenshot -string file                # save to a file, not the clipboard
+w com.apple.screencapture target -string clipboard
+w com.apple.screencapture target-screenshot -string clipboard
 w com.apple.screencapture target-screenrecording -string file
 
 # ---- Battery: turn the display off after 10 minutes on battery too.
