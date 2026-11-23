@@ -34,6 +34,7 @@
 #                        onedrive brew ssh codex github macos debloat trash theme
 
 set -uo pipefail
+export HOMEBREW_NO_ENV_HINTS=1
 
 # clt: install Apple's Command Line Tools (git, compilers) if missing, and wait
 # for them. macOS shows an install window; click Install there.
