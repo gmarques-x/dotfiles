@@ -4,7 +4,7 @@
 #   1. Homebrew
 #   2. OneDrive (then waits while you finish its setup wizard)
 #   3. Terminal tools and apps from the Brewfile (Ghostty, eza, yazi, starship,
-#      Claude, ChatGPT, Gemini and their CLIs, ...)
+#      ChatGPT, Codex, ...)
 #   4. Links the configs into ~/.config and ~/.zshenv
 #   5. Links ~/.ssh to the "dot-ssh" folder in OneDrive
 #   6. Links ~/.claude (Claude Code's settings, skills, memory) to the
@@ -210,7 +210,7 @@ step "Terminal tools and apps (Brewfile)"
 # An app installed outside Homebrew (dragged in, or from its own installer)
 # makes `brew install --cask` fail, so those casks are skipped and left alone.
 skip_casks=""
-for pair in claude:Claude chatgpt:ChatGPT google-gemini:Gemini ghostty:Ghostty "google-chrome:Google Chrome"; do
+for pair in chatgpt:ChatGPT ghostty:Ghostty "google-chrome:Google Chrome"; do
   cask="${pair%%:*}" app="${pair#*:}"
   if [ -d "/Applications/$app.app" ] && ! "$BREW" list --cask "$cask" >/dev/null 2>&1; then
     skip_casks="$skip_casks $cask"
