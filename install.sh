@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# dotfiles installer for macOS.
+# dotfiles installer for macOS. On a fresh Mac:
+#   curl -fsSL https://raw.githubusercontent.com/gmarques-x/dotfiles/main/install.sh | bash
 #
-#   1. Homebrew
+#   1. Command Line Tools (git, compilers) and Homebrew
 #   2. OneDrive (then waits while you finish its setup wizard)
 #   3. Command-line tools and fonts (Brewfile), then the apps you pick from
 #      Brewfile.apps (Rosetta first, for Steam), and Chrome as the default browser
@@ -34,7 +35,38 @@
 
 set -uo pipefail
 
-DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# clt: install Apple's Command Line Tools (git, compilers) if missing, and wait
+# for them. macOS shows an install window; click Install there.
+clt() {
+  xcode-select -p >/dev/null 2>&1 && return 0
+  printf '    Installing the Command Line Tools (git and compilers): click Install in the window that opens.\n'
+  xcode-select --install >/dev/null 2>&1 || true
+  until xcode-select -p >/dev/null 2>&1; do sleep 5; done
+  printf '    Command Line Tools installed.\n'
+}
+
+# Bootstrap. Run without a clone of the repo (curl … | bash) or from a copy that
+# isn't a git clone (a downloaded zip): install the Command Line Tools, clone
+# the repo to ~/Developer/dotfiles, and start again from there.
+REPO_URL="https://github.com/gmarques-x/dotfiles.git"
+# Piped into bash, the script has no file of its own (BASH_SOURCE is empty).
+HERE=""
+[ -n "${BASH_SOURCE[0]:-}" ] && HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
+if [ -z "$HERE" ] || [ ! -f "$HERE/Brewfile" ] || [ ! -e "$HERE/.git" ]; then
+  DEST="$HOME/Developer/dotfiles"
+  printf 'dotfiles: getting the repo into %s\n' "$DEST"
+  clt
+  if [ -e "$DEST/.git" ]; then
+    git -C "$DEST" pull --ff-only --quiet || printf '    ! could not update %s; using it as it is\n' "$DEST"
+  else
+    mkdir -p "$HOME/Developer"
+    git clone --quiet "$REPO_URL" "$DEST" || { printf 'Could not clone %s\n' "$REPO_URL" >&2; exit 1; }
+  fi
+  if (: </dev/tty) 2>/dev/null; then exec bash "$DEST/install.sh" "$@" </dev/tty; fi
+  exec bash "$DEST/install.sh" "$@"
+fi
+
+DOTFILES="$HERE"
 CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
 CACHE="${XDG_CACHE_HOME:-$HOME/.cache}"
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -56,7 +88,7 @@ fi
 
 # The sections, in order. Before each one the whole list is shown: ✓ done,
 # ! done with warnings, – skipped, ▸ running now, ○ still to come.
-STEPS=("Homebrew" "OneDrive" "Apps and command-line tools" "Folders and configs"
+STEPS=("Command Line Tools and Homebrew" "OneDrive" "Apps and command-line tools" "Folders and configs"
        "~/.ssh in OneDrive" "Codex's folder in OneDrive" "Git and GitHub" "macOS settings"
        "Siri, suggestions and ads off" "Remove Apple apps" "Theme")
 STATUS=() CUR=-1 STEP_WARN=0 STEP_SKIP=0
@@ -209,7 +241,9 @@ printf '%sdotfiles%s  %s\n' "$B" "$N" "$(pretty "$DOTFILES")"
 
 # ---------------------------------------------------------------- 1. Homebrew
 
-step "Homebrew"
+step "Command Line Tools and Homebrew"
+clt
+ok "Command Line Tools"
 if [ -x /opt/homebrew/bin/brew ]; then
   BREW=/opt/homebrew/bin/brew
 elif [ -x /usr/local/bin/brew ]; then
@@ -357,6 +391,7 @@ fi
 step "Folders and configs"
 # The XDG folders, ~/.local/bin (where the XDG spec puts user programs) and ~/Developer.
 mkdir -p "$CONFIG" "$CACHE" "$DATA" "$XSTATE" "$HOME/.local/bin" "$HOME/Developer"
+touch "$HOME/.hushlogin"   # no "Last login" line at the top of new terminals
 ok "~/Developer and the XDG folders ($(pretty "$CONFIG"), $(pretty "$CACHE"), $(pretty "$DATA"), $(pretty "$XSTATE"))"
 link "$DOTFILES/zsh/.zshenv"  "$HOME/.zshenv"
 for tool in zsh ghostty starship eza bat yazi git fastfetch atuin htop glow lazygit nvim vim wget; do

@@ -7,24 +7,23 @@ A baseline macOS setup for zsh, Ghostty, terminal tools and apps, with one theme
 On a fresh Mac, open Terminal and run:
 
 ```sh
-git clone https://github.com/gmarques-x/dotfiles.git ~/Developer/dotfiles
-~/Developer/dotfiles/install.sh
+curl -fsSL https://raw.githubusercontent.com/gmarques-x/dotfiles/main/install.sh | bash
 ```
 
-(On a brand-new Mac, `git` will first ask to install the Command Line Tools; accept, then run the two lines again.)
+It installs Apple's Command Line Tools first (click **Install** in the window that opens; the script waits), clones this repo to `~/Developer/dotfiles`, and carries on from there. On a Mac that already has the repo, run `~/Developer/dotfiles/install.sh` instead.
 
 You can clone the public repository without signing in. The installer asks you to sign in with `gh` during Git and GitHub setup.
 
 The installer runs these steps in order, and is safe to run again; finished steps are skipped. Before each step it shows the whole list: ✓ done, ! done with warnings, – skipped, ▸ running now, ○ still to come.
 
-1. **Homebrew**: installs it if missing (asks for your Mac password).
+1. **Command Line Tools and Homebrew**: installs each if missing (Homebrew asks for your Mac password).
 2. **OneDrive**: installs it, opens it, and **waits** while you sign in and let it sync. Press Return when the wizard is done.
 3. **Apps and command-line tools**:
    - Fonts and command-line tools from the [`Brewfile`](Brewfile), always: JetBrains Mono, SF Pro, starship, eza, bat, zoxide, fzf, ripgrep, fd, jq, wget, watch, htop, dust, duf, glow, fastfetch, gh, git-delta, atuin, the zsh plugins, Neovim (with tree-sitter for LazyVim), lazygit, Python, mtr, nmap, ipcalc, and yazi with its preview helpers (poppler, sevenzip, resvg, ffmpeg, imagemagick).
    - Then the apps in [`Brewfile.apps`](Brewfile.apps), as a list to choose from: Ghostty, Google Chrome, VS Code, Keka, balenaEtcher, WhatsApp, Microsoft Teams, Steam, Modrinth, Vorssaint, Wireshark, ChatGPT, Codex, Claude and Claude Code. **Space** marks or unmarks an app, **⌃A** marks all, **Return** installs the marked ones (none marked: no apps). The first time nothing is marked; after that, your last choice is (it's kept in `~/.local/state/dotfiles/apps`, and `dots-sync` reuses it without asking). Unmarking an app doesn't uninstall it.
    - Rosetta is installed first when Steam is chosen (Steam is an Intel app), and Chrome is made the default browser when chosen (macOS asks you to confirm).
    - An app that's already in /Applications but wasn't installed by Homebrew is left alone. Sign in to each app and CLI on first launch.
-4. **Folders and configs**: creates `~/Developer` and the XDG folders (`~/.config`, `~/.cache`, `~/.local/share`, `~/.local/state`, `~/.local/bin`), links the configs into place (see below), and moves dotfiles that used to land in `~/` (`.zsh_history`, `.zsh_sessions`, `.zcompdump*`, `.lesshst`, `.python_history`, `.vimrc`, `.vim`, `.viminfo`, `.wget-hsts`, `.atuin`) to their XDG places or the backup. Claude Code's settings live in `~/.config/claude` (`CLAUDE_CONFIG_DIR`) instead of `~/.claude` and `~/.claude.json`; anything already in those is copied across and the old ones go to the backup. Apps opened from the Dock or Finder don't read zsh's files, so a login item (`~/Library/LaunchAgents/local.dotfiles.environment.plist`) sets `CODEX_HOME` and `CLAUDE_CONFIG_DIR` for them at every login (apps already open when you install need a restart). It also imports your zsh history into atuin (once), installs yazi's plugins and flavors (`ya pkg install`), and downloads Neovim's plugins (LazyVim).
+4. **Folders and configs**: creates `~/Developer`, `~/.hushlogin` and the XDG folders (`~/.config`, `~/.cache`, `~/.local/share`, `~/.local/state`, `~/.local/bin`), links the configs into place (see below), and moves dotfiles that used to land in `~/` (`.zsh_history`, `.zsh_sessions`, `.zcompdump*`, `.lesshst`, `.python_history`, `.vimrc`, `.vim`, `.viminfo`, `.wget-hsts`, `.atuin`) to their XDG places or the backup. Claude Code's settings live in `~/.config/claude` (`CLAUDE_CONFIG_DIR`) instead of `~/.claude` and `~/.claude.json`; anything already in those is copied across and the old ones go to the backup. Apps opened from the Dock or Finder don't read zsh's files, so a login item (`~/Library/LaunchAgents/local.dotfiles.environment.plist`) sets `CODEX_HOME` and `CLAUDE_CONFIG_DIR` for them at every login (apps already open when you install need a restart). It also imports your zsh history into atuin (once), installs yazi's plugins and flavors (`ya pkg install`), and downloads Neovim's plugins (LazyVim).
 5. **`~/.ssh`**: becomes a link to the `dot-ssh` folder in your OneDrive (a link to any other folder is replaced). Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
 6. **Codex**: Codex's folder (settings, memory, sessions) lives in `~/.config/codex` (`CODEX_HOME`, set in `zsh/.zshenv`) and is a link to the `codex` folder in your OneDrive, the same way as `~/.ssh`. The OneDrive folder is created if it doesn't exist. Anything in an old `~/.codex` that OneDrive doesn't have is copied across, and `~/.codex` goes to the backup.
 7. **Git and GitHub**: asks for your name and email, logs in to GitHub with `gh` in the browser, then picks your SSH key: `~/.ssh/id_ed25519` if it exists, otherwise any key in `~/.ssh` that GitHub already has for logging in (pointed at github.com in `~/.ssh/config.d/github`). It creates a new `id_ed25519` only when there's none, and asks first if `~/.ssh` isn't linked to OneDrive. It writes the git identity and makes sure the key is on GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
@@ -81,7 +80,7 @@ Because the configs are links, editing a file in `~/.config` edits the repo. Com
 
 Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, `~/.codex`, `~/.zsh_history`, `~/.vimrc`, ...) is moved to `~/.local/state/dotfiles/backup/<timestamp>/`, never deleted. `git/local` and `git/allowed_signers` are generated per Mac and not tracked, nor are the colour files `theme` writes.
 
-Only three things the dotfiles set up stay directly in `~/`: `~/.zshenv` (zsh reads it only from there; it points zsh at `~/.config/zsh`), `~/.ssh` (ssh only looks there) and `~/.vscode` (VS Code's extensions; it has no setting to move them).
+Only four things the dotfiles set up stay directly in `~/`: `~/.zshenv` (zsh reads it only from there; it points zsh at `~/.config/zsh`), `~/.ssh` (ssh only looks there), `~/.hushlogin` (an empty file that hides the "Last login" line in new terminals; macOS only looks there) and `~/.vscode` (VS Code's extensions; it has no setting to move them).
 
 ## Keeping Macs in sync
 
