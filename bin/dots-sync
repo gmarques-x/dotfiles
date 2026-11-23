@@ -64,7 +64,7 @@ skip="onedrive ssh codex github trash"
 has '^Brewfile(\.apps)?$'                               || skip+=" brew"
 has '^macos/(settings\.sh|sidebar\.swift)$'             || skip+=" macos"
 has '^macos/(debloat|agents)\.sh$'                      || skip+=" debloat"
-has '^(themes/|bin/(theme|wallpaper\.py|vscode-theme\.py)$|starship/)' || skip+=" theme"
+has '^(themes/|bin/(theme|wallpaper\.py|vscode-theme\.py|codex-theme\.py)$|starship/)' || skip+=" theme"
 
 if [[ -n $DRY ]]; then
   printf '\n%sWould run%s install.sh, skipping: %s\n' "$B" "$N" "$skip"

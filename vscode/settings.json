@@ -1,5 +1,33 @@
 {
-    "workbench.colorTheme": "Tokyo Night Storm",
+    "workbench.colorCustomizations": {
+        "[Dark Modern]": {
+            "editor.background": "#0f1d28",
+            "editor.foreground": "#f6e7d1",
+            "editor.selectionBackground": "#354e59",
+            "editor.lineHighlightBackground": "#172a35",
+            "sideBar.background": "#0b1620",
+            "activityBar.background": "#172a35",
+            "activityBar.foreground": "#78b8bf",
+            "statusBar.background": "#78b8bf",
+            "statusBar.foreground": "#0f1d28",
+            "editorGroupHeader.tabsBackground": "#0b1620",
+            "tab.activeBackground": "#0f1d28",
+            "terminal.background": "#0f1d28",
+            "terminal.foreground": "#f6e7d1",
+            "focusBorder": "#78b8bf"
+        }
+    },
+    "editor.tokenColorCustomizations": {
+        "[Dark Modern]": {
+            "comments": "#96a6a6",
+            "strings": "#a2bd94",
+            "functions": "#78b8bf",
+            "keywords": "#f28c77",
+            "types": "#8bcab5",
+            "numbers": "#ddb261"
+        }
+    },
+    "workbench.colorTheme": "Dark Modern",
     "workbench.startupEditor": "none",
     "git.openRepositoryInParentFolders": "always",
     "terminal.integrated.initialHint": false,

@@ -15,7 +15,7 @@ w() {
 }
 wh() { defaults -currentHost write "$@" 2>/dev/null || { printf '    ! could not set %s %s (this Mac)\n' "$1" "$2" >&2; failed=1; }; }
 
-# ---- Appearance (light or dark, the accent and highlight colours and the
+# ---- Appearance (light or dark, the accent, folder and highlight colours and the
 # wallpaper come from `theme`)
 w NSGlobalDomain AppleShowScrollBars -string WhenScrolling              # scroll bars: when scrolling
 w NSGlobalDomain AppleReduceDesktopTinting -bool true                   # wallpaper tinting in windows: off

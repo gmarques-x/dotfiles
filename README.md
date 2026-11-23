@@ -29,7 +29,7 @@ The installer runs these steps in order, and is safe to run again; finished step
 7. **Git and GitHub**: asks for your name and email, logs in to GitHub with `gh` in the browser, then picks your SSH key: `~/.ssh/id_ed25519` if it exists, otherwise any key in `~/.ssh` that GitHub already has for logging in (pointed at github.com in `~/.ssh/config.d/github`). It creates a new `id_ed25519` only when there's none, and asks first if `~/.ssh` isn't linked to OneDrive. It writes the git identity and makes sure the key is on GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
 8. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies these preferences:
-   - **Appearance**: scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass. Light or dark, the accent and highlight colours and the wallpaper come from the theme (step 10).
+   - **Appearance**: scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass. Light or dark, the accent and folder colours, and the wallpaper come from the theme (step 10). Text highlights are always yellow.
    - **Language & Region**: English (US) first, Portuguese (Portugal) second, with Portugal as the region
    - **Dock**: on the right, size 34, no magnification, hides automatically with no delay and a quick slide, Scale effect, minimise into the app icon, dots under open apps, no suggested or recent apps. On the first run it pins Ghostty, ChatGPT, Chrome and System Settings (those installed) and leaves nothing on the right of the separator (no Downloads).
    - **Desktop and windows**: no icons or widgets on the desktop; nothing shows the desktop (clicking the wallpaper, the F11 shortcuts, the spread-fingers gesture and hot corners are all off); Stage Manager off; Mission Control groups windows by app and rearranges Spaces by recent use; documents use tabs only when requested, and closing asks whether to keep changes.
@@ -118,10 +118,11 @@ The `codex` folder also holds live session files, so use it from one Mac at a ti
 
 ## Themes
 
-`theme` opens a menu of every theme with a preview: Enter applies the highlighted one and keeps the menu open, Esc quits. `theme <name>` switches straight away, `theme list` lists them, `theme apply` re-applies the current one.
+`theme` opens a menu of every theme with a preview: Enter applies the highlighted one and keeps the menu open, Ctrl-W switches the current desktop between illustrated and realistic wallpapers, and Esc quits. `theme <name>` switches straight away, `theme list` lists them, `theme apply` re-applies the current one.
 
 | Family | Variants |
 | --- | --- |
+| Atlas | Dark survey ink with light Tagus estuary wallpapers |
 | Catppuccin | Latte, Frappé, Macchiato, Mocha |
 | Everforest | Dark and Light, each Hard, Medium or Soft |
 | Gruvbox | Dark and Light, each Hard, Medium or Soft |
@@ -129,7 +130,9 @@ The `codex` folder also holds live session files, so use it from one Mac at a ti
 | Rosé Pine | Rosé Pine, Moon, Dawn |
 | Tokyo Night | Night, Storm, Moon, Day |
 
-A theme recolours Ghostty, the prompt, zsh, fzf, eza, bat, delta (git diffs), lazygit, atuin, glow, yazi (its flavor and its header), Neovim, Vim, htop (through the terminal's colours) and VS Code (installing its theme extension), and sets macOS to light or dark, its accent and highlight colours, and a matching wallpaper. Open Ghostty windows, Neovims and shells change on the spot. Each Mac keeps its own choice (`~/.local/state/dotfiles/theme`). Themes are `themes/<name>.sh`; add one by copying another.
+A theme recolours Ghostty, the prompt, zsh, fzf, eza, bat, delta (git diffs), lazygit, atuin, glow, yazi (its flavor and its header), Neovim, Vim, htop (through the terminal's colours) and VS Code (installing its theme extension), and sets macOS to light or dark, the native accent preset for the theme’s main hue, a Finder folder tint using the variant’s accent RGB, yellow text highlights, and a matching wallpaper on every Mission Control Space across all displays. Open Ghostty windows, Neovims and shells change on the spot. Each Mac keeps its own choice (`~/.local/state/dotfiles/theme`). Run `theme wallpaper realistic` or `theme wallpaper illustrated` to set the style directly. Run `theme wallpaper` to see the selected style. The choice carries over to future theme switches on this Mac and defaults to illustrated. Each theme in `themes/<name>.sh` uses `wallpapers/<name>.jpg` for the illustration and `wallpapers/realistic/<name>.jpg` for the photographic version. Custom themes with only an illustration use it for either style. To add a theme, copy a theme file and supply a JPEG with the same name. Themes without artwork use a gradient in their background colours.
+
+The ChatGPT desktop app (including Codex) gets the selected theme's light or dark mode, background, text, accent and diff colors. Reopen the app to pick up the saved palette. Set `THEME_NO_CODEX=1` to skip this when running `theme`. The palette is stored in `$CODEX_HOME/config.toml`, so it also syncs with OneDrive if your Codex folder is linked there.
 
 ## Editors
 
