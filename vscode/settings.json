@@ -27,7 +27,7 @@
             "numbers": "#ddb261"
         }
     },
-    "workbench.colorTheme": "Dark Modern",
+    "workbench.colorTheme": "Everforest Dark",
     "workbench.startupEditor": "none",
     "git.openRepositoryInParentFolders": "always",
     "terminal.integrated.initialHint": false,
