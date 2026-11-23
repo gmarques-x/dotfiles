@@ -8,7 +8,8 @@
 #   4. Links the configs into ~/.config and ~/.zshenv
 #   5. Links ~/.ssh to the "dot-ssh" folder in OneDrive
 #   6. Links ~/.claude (Claude Code's settings, skills, memory) to the
-#      "claude" folder in OneDrive
+#      "claude" folder in OneDrive, and Codex's and Gemini's instruction
+#      files (~/.codex/AGENTS.md, ~/.gemini/GEMINI.md) to the copies in it
 #   7. Git identity, GitHub login and SSH keys on GitHub
 #   8. macOS settings (macos/settings.sh)
 #   9. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
@@ -293,6 +294,18 @@ elif ! pick_onedrive; then
 else
   link_to_onedrive .claude "$CLAUDE_DIR_NAME"
   info "${DIM}Use this folder from one Mac at a time; it holds live session files.${N}"
+fi
+# The team's standing instructions for Codex and Gemini live in ~/.claude/team
+# (so OneDrive backs them up); each CLI reads them from its own folder.
+if ! skip claude; then
+  for pair in "codex-AGENTS.md:.codex/AGENTS.md" "gemini-GEMINI.md:.gemini/GEMINI.md"; do
+    src="$HOME/.claude/team/teammates/${pair%%:*}"
+    if [ -f "$src" ]; then
+      link "$src" "$HOME/${pair#*:}"
+    else
+      warn "$(pretty "$src") not found; ~/${pair#*:} not linked (run again after OneDrive syncs)"
+    fi
+  done
 fi
 
 # ---------------------------------------------------------------- 7. Git & GitHub

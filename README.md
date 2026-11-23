@@ -13,6 +13,8 @@ git clone https://github.com/gmarques-x/dotfiles.git ~/Developer/dotfiles
 
 (On a brand-new Mac, `git` will first ask to install the Command Line Tools; accept, then run the two lines again.)
 
+The repository is private, so `git clone` asks you to sign in: give your GitHub username and, as the password, a [personal access token](https://github.com/settings/tokens) with `repo` access (GitHub no longer accepts account passwords there). The installer then logs you in to GitHub with `gh` for everything after.
+
 The installer runs these steps in order, and is safe to run again; finished steps are skipped:
 
 1. **Homebrew**: installs it if missing (asks for your Mac password).
@@ -28,7 +30,7 @@ The installer runs these steps in order, and is safe to run again; finished step
    An app that's already in /Applications but wasn't installed by Homebrew (Chrome, Claude, ...) is left alone. Sign in to each app and CLI on first launch.
 4. **Configs**: links them into place (see below).
 5. **`~/.ssh`**: becomes a link to the `dot-ssh` folder in your OneDrive (a link to any other folder is replaced). Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
-6. **`~/.claude`**: Claude Code's folder (settings, `CLAUDE.md`, skills, memory) becomes a link to the `claude` folder in your OneDrive, the same way as `~/.ssh`. `~/.claude.json` (app state and caches) stays on the Mac.
+6. **`~/.claude`**: Claude Code's folder (settings, `CLAUDE.md`, skills, memory) becomes a link to the `claude` folder in your OneDrive, the same way as `~/.ssh`. `~/.claude.json` (app state and caches) stays on the Mac. Codex's `~/.codex/AGENTS.md` and Gemini's `~/.gemini/GEMINI.md` become links to the team instructions kept in `~/.claude/team/teammates/`.
 7. **Git and GitHub**: asks for your name and email, logs in to GitHub with `gh` in the browser, then picks your SSH key: `~/.ssh/id_ed25519` if it exists, otherwise any key in `~/.ssh` that GitHub already has for logging in (pointed at github.com in `~/.ssh/config.d/github`). It creates a new `id_ed25519` only when there's none, and asks first if `~/.ssh` isn't linked to OneDrive. It writes the git identity and makes sure the key is on GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
 8. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies the settings that differ from a fresh Mac:
