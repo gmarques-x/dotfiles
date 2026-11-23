@@ -5,33 +5,38 @@
 #   2. OneDrive (then waits while you finish its setup wizard)
 #   3. Terminal tools and apps from the Brewfile (Ghostty, eza, yazi, starship,
 #      ChatGPT, Codex, ...)
-#   4. Links the configs into ~/.config and ~/.zshenv
+#   4. Creates ~/Developer and the XDG folders, links the configs into
+#      ~/.config and ~/.zshenv, and moves stray zsh/less/python dotfiles out of ~/
 #   5. Links ~/.ssh to the "dot-ssh" folder in OneDrive
-#   6. Links ~/.claude (Claude Code's settings, skills, memory) to the
-#      "claude" folder in OneDrive, and Codex's and Gemini's instruction
-#      files (~/.codex/AGENTS.md, ~/.gemini/GEMINI.md) to the copies in it
+#   6. Links ~/.config/codex (Codex's settings and memory, found through
+#      $CODEX_HOME) to the "codex" folder in OneDrive, creating it there if it
+#      doesn't exist; a login item sets CODEX_HOME for apps too
 #   7. Git identity, GitHub login and SSH keys on GitHub
 #   8. macOS settings (macos/settings.sh)
 #   9. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
 #      Pages) and GarageBand's sound library to the Trash, after asking
 #
 # Safe to run again: anything already done is skipped. Anything replaced is
-# moved (never deleted) to ~/.local/state/dotfiles/backup/<timestamp>/.
+# moved (never deleted) to $XDG_STATE_HOME/dotfiles/backup/<timestamp>/
+# (~/.local/state/dotfiles/backup/<timestamp>/).
 #
 # Environment overrides:
 #   ONEDRIVE_SSH_DIR     name of the ssh folder inside OneDrive (default: dot-ssh)
-#   ONEDRIVE_CLAUDE_DIR  name of the Claude Code folder inside OneDrive (default: claude)
-#   DOTFILES_SKIP        space-separated steps to skip: onedrive ssh claude github macos debloat
+#   ONEDRIVE_CODEX_DIR   name of the Codex folder inside OneDrive (default: codex)
+#   DOTFILES_SKIP        space-separated steps to skip: onedrive ssh codex github macos debloat
 
 set -uo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
-STATE="$HOME/.local/state/dotfiles"
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}"
+DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
+XSTATE="${XDG_STATE_HOME:-$HOME/.local/state}"
+STATE="$XSTATE/dotfiles"
 BACKUP="$STATE/backup/$(date +%Y%m%d-%H%M%S)"
 CLOUD="$HOME/Library/CloudStorage"
 SSH_DIR_NAME="${ONEDRIVE_SSH_DIR:-dot-ssh}"
-CLAUDE_DIR_NAME="${ONEDRIVE_CLAUDE_DIR:-claude}"
+CODEX_DIR_NAME="${ONEDRIVE_CODEX_DIR:-codex}"
 SKIP=" ${DOTFILES_SKIP:-} "
 
 # ---------------------------------------------------------------- helpers
@@ -114,32 +119,34 @@ pick_onedrive() {
     info "More than one OneDrive folder:"
     i=0
     while IFS= read -r d; do i=$((i + 1)); info "  $i  $(pretty "$d")"; done <<<"$folders"
-    n="$(ask "Which one holds your $SSH_DIR_NAME and $CLAUDE_DIR_NAME folders?" 1)"
+    n="$(ask "Which one holds your $SSH_DIR_NAME and $CODEX_DIR_NAME folders?" 1)"
     OD="$(sed -n "${n}p" <<<"$folders")"
     [ -n "$OD" ] || die "not a choice: $n"
   fi
 }
 
-# link_to_onedrive NAME FOLDER: make ~/NAME a symlink to OneDrive/FOLDER.
+# link_to_onedrive DEST FOLDER: make DEST (a full path) a symlink to OneDrive/FOLDER.
 # Files only on this Mac are copied across (never overwriting OneDrive's), and
-# the old ~/NAME goes to the backup.
+# the old DEST goes to the backup.
 link_to_onedrive() {
-  local name="$1" target="$OD/$2" home="$HOME/$1"
+  local home="$1" target="$OD/$2" shown
+  shown="$(pretty "$home")"
   if [ ! -d "$target" ]; then
     warn "$(pretty "$target") doesn't exist yet; creating it"
     mkdir -p "$target" || die "could not create $target"
   fi
   # Make sure the files are downloaded, not just placeholders.
   find "$target" -type f -exec cat {} + >/dev/null 2>&1 || true
+  mkdir -p "$(dirname "$home")"
   if [ -d "$home" ] && [ ! -L "$home" ]; then
     cp -Rn "$home/." "$target/" 2>/dev/null \
-      || info "files OneDrive already had were kept; the old ~/$name is in the backup"
-    backup "$home" || die "could not back up ~/$name"
+      || info "files OneDrive already had were kept; the old $shown is in the backup"
+    backup "$home" || die "could not back up $shown"
   elif [ -L "$home" ]; then
-    backup "$home" || die "could not move the old ~/$name link"
+    backup "$home" || die "could not move the old $shown link"
   fi
-  ln -s "$target" "$home" || die "could not link ~/$name"
-  ok "~/$name → $(pretty "$target")"
+  ln -s "$target" "$home" || die "could not link $shown"
+  ok "$shown → $(pretty "$target")"
   info "${DIM}Tip: in Finder, right-click that folder › Always Keep on This Device.${N}"
 }
 
@@ -228,7 +235,9 @@ fi
 # ---------------------------------------------------------------- 4. Configs
 
 step "Configs"
-mkdir -p "$CONFIG"
+# The XDG folders, ~/.local/bin (where the XDG spec puts user programs) and ~/Developer.
+mkdir -p "$CONFIG" "$CACHE" "$DATA" "$XSTATE" "$HOME/.local/bin" "$HOME/Developer"
+ok "~/Developer and the XDG folders ($(pretty "$CONFIG"), $(pretty "$CACHE"), $(pretty "$DATA"), $(pretty "$XSTATE"))"
 link "$DOTFILES/zsh/.zshenv"                  "$HOME/.zshenv"
 link "$DOTFILES/zsh"                          "$CONFIG/zsh"
 link "$DOTFILES/ghostty"                      "$CONFIG/ghostty"
@@ -247,7 +256,17 @@ done
 # Ghostty prefers this file over ~/.config/ghostty/config when it exists.
 GHOSTTY_APP_SUPPORT="$HOME/Library/Application Support/com.mitchellh.ghostty/config"
 if [ -f "$GHOSTTY_APP_SUPPORT" ] && [ ! -L "$GHOSTTY_APP_SUPPORT" ]; then backup "$GHOSTTY_APP_SUPPORT"; fi
-mkdir -p "$HOME/.local/state/zsh" "$HOME/.cache/zsh"
+mkdir -p "$XSTATE/zsh" "$XSTATE/less" "$XSTATE/python" "$CACHE/zsh"
+# Dotfiles zsh and less used to leave in ~/ : move them to their XDG places.
+if [ -f "$HOME/.zsh_history" ] && [ ! -e "$XSTATE/zsh/history" ]; then
+  mv "$HOME/.zsh_history" "$XSTATE/zsh/history" && ok "moved ~/.zsh_history → $(pretty "$XSTATE/zsh/history")"
+fi
+for f in .zsh_history .zsh_sessions .zcompdump* .lesshst .python_history; do
+  for p in "$HOME"/$f; do
+    [ -e "$p" ] || [ -L "$p" ] || continue
+    backup "$p"
+  done
+done
 
 # ---------------------------------------------------------------- 5. ~/.ssh → OneDrive
 
@@ -260,7 +279,7 @@ else
   elif ! pick_onedrive; then
     warn "no OneDrive folder found; ~/.ssh stays on this Mac (run again after OneDrive syncs)"
   else
-    link_to_onedrive .ssh "$SSH_DIR_NAME"
+    link_to_onedrive "$HOME/.ssh" "$SSH_DIR_NAME"
   fi
 
   [ -d "$HOME/.ssh" ] || mkdir -m 700 "$HOME/.ssh"
@@ -280,32 +299,73 @@ else
   done
 fi
 
-# ---------------------------------------------------------------- 6. ~/.claude → OneDrive
+# ---------------------------------------------------------------- 6. Codex → OneDrive
 
-# Claude Code's settings, CLAUDE.md, skills and memory. ~/.claude.json (app
-# state and caches, rewritten on every launch) stays on this Mac on purpose.
-step "~/.claude → OneDrive/$CLAUDE_DIR_NAME"
-if skip claude; then
+# Codex's settings and memory. Codex looks in $CODEX_HOME (set in zsh/.zshenv to
+# $XDG_CONFIG_HOME/codex) instead of ~/.codex. The folder is created in OneDrive
+# if it isn't there yet.
+CODEX_HOME_DIR="$CONFIG/codex"
+step "$(pretty "$CODEX_HOME_DIR") → OneDrive/$CODEX_DIR_NAME"
+if skip codex; then
   warn "skipped (DOTFILES_SKIP)"
-elif [ -L "$HOME/.claude" ] && [ -d "$HOME/.claude" ] && [ "$(basename "$(readlink "$HOME/.claude")")" = "$CLAUDE_DIR_NAME" ]; then
-  ok "already linked → $(readlink "$HOME/.claude" | sed "s|$HOME|~|")"
+elif [ -L "$CODEX_HOME_DIR" ] && [ -d "$CODEX_HOME_DIR" ] && [ "$(basename "$(readlink "$CODEX_HOME_DIR")")" = "$CODEX_DIR_NAME" ]; then
+  ok "already linked → $(readlink "$CODEX_HOME_DIR" | sed "s|$HOME|~|")"
 elif ! pick_onedrive; then
-  warn "no OneDrive folder found; ~/.claude stays on this Mac (run again after OneDrive syncs)"
+  warn "no OneDrive folder found; Codex's folder stays on this Mac (run again after OneDrive syncs)"
 else
-  link_to_onedrive .claude "$CLAUDE_DIR_NAME"
+  link_to_onedrive "$CODEX_HOME_DIR" "$CODEX_DIR_NAME"
   info "${DIM}Use this folder from one Mac at a time; it holds live session files.${N}"
 fi
-# The team's standing instructions for Codex and Gemini live in ~/.claude/team
-# (so OneDrive backs them up); each CLI reads them from its own folder.
-if ! skip claude; then
-  for pair in "codex-AGENTS.md:.codex/AGENTS.md" "gemini-GEMINI.md:.gemini/GEMINI.md"; do
-    src="$HOME/.claude/team/teammates/${pair%%:*}"
-    if [ -f "$src" ]; then
-      link "$src" "$HOME/${pair#*:}"
+# The old place, ~/.codex: bring across what OneDrive doesn't have, then back it up.
+# Without OneDrive the folder is still created, since Codex won't start if
+# CODEX_HOME points at nothing.
+if ! skip codex; then
+  mkdir -p "$CODEX_HOME_DIR"
+  if [ -d "$HOME/.codex" ] && [ ! -L "$HOME/.codex" ]; then
+    cp -Rn "$HOME/.codex/." "$CODEX_HOME_DIR/" 2>/dev/null || true
+    backup "$HOME/.codex" && ok "moved ~/.codex into $(pretty "$CODEX_HOME_DIR")"
+  elif [ -L "$HOME/.codex" ]; then
+    backup "$HOME/.codex"
+  fi
+
+  # Apps opened from the Dock or Finder (ChatGPT, VS Code) don't read zsh's
+  # files, so a login item sets CODEX_HOME for the whole session at each login.
+  AGENT_LABEL="local.dotfiles.codex-home"
+  AGENT="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
+  mkdir -p "${AGENT%/*}"
+  cat > "$AGENT.tmp" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$AGENT_LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/launchctl</string>
+    <string>setenv</string>
+    <string>CODEX_HOME</string>
+    <string>$CODEX_HOME_DIR</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+PLIST
+  if cmp -s "$AGENT.tmp" "$AGENT"; then
+    rm -f "$AGENT.tmp"
+    ok "login item sets CODEX_HOME for apps"
+  else
+    mv "$AGENT.tmp" "$AGENT"
+    launchctl bootout "gui/$(id -u)/$AGENT_LABEL" 2>/dev/null || true
+    if launchctl bootstrap "gui/$(id -u)" "$AGENT" 2>/dev/null; then
+      ok "login item sets CODEX_HOME for apps ($(pretty "$AGENT"))"
     else
-      warn "$(pretty "$src") not found; ~/${pair#*:} not linked (run again after OneDrive syncs)"
+      warn "could not load $(pretty "$AGENT"); it takes effect at the next login"
     fi
-  done
+  fi
+  # Now as well, for apps opened from here on (already open ones need a restart).
+  launchctl setenv CODEX_HOME "$CODEX_HOME_DIR" 2>/dev/null || true
 fi
 
 # ---------------------------------------------------------------- 7. Git & GitHub

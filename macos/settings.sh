@@ -57,8 +57,8 @@ tile() {
 state="$HOME/.local/state/dotfiles"
 if [ ! -f "$state/dock-apps-set" ]; then
   tiles=()
-  for app in "/Applications/Ghostty.app" "/Applications/Claude.app" \
-    "/Applications/ChatGPT.app" "/Applications/Gemini.app" "/Applications/Google Chrome.app" \
+  for app in "/Applications/Ghostty.app" \
+    "/Applications/ChatGPT.app" "/Applications/Google Chrome.app" \
     "/System/Applications/System Settings.app"; do
     [ -d "$app" ] && tiles+=("$(tile "$app")")
   done

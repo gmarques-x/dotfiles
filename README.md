@@ -22,15 +22,15 @@ The installer runs these steps in order, and is safe to run again; finished step
 3. **Terminal tools and apps**: everything in the [`Brewfile`](Brewfile): Ghostty, Google Chrome, the JetBrains Mono and SF Pro fonts, starship, eza, bat, yazi, zoxide, fzf, ripgrep, fd, jq, fastfetch, gh, the zsh plugins, the ChatGPT desktop app, and the Codex CLI (`codex`).
 
    An app that's already in /Applications but wasn't installed by Homebrew (such as Chrome or ChatGPT) is left alone. Sign in to each app and CLI on first launch.
-4. **Configs**: links them into place (see below).
+4. **Folders and configs**: creates `~/Developer` and the XDG folders (`~/.config`, `~/.cache`, `~/.local/share`, `~/.local/state`, `~/.local/bin`), links the configs into place (see below), and moves dotfiles that zsh, less and Python used to leave in `~/` (`.zsh_history`, `.zsh_sessions`, `.zcompdump*`, `.lesshst`, `.python_history`) to their XDG places or the backup.
 5. **`~/.ssh`**: becomes a link to the `dot-ssh` folder in your OneDrive (a link to any other folder is replaced). Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
-6. **`~/.claude`**: Claude Code's folder (settings, `CLAUDE.md`, skills, memory) becomes a link to the `claude` folder in your OneDrive, the same way as `~/.ssh`. `~/.claude.json` (app state and caches) stays on the Mac. Codex's `~/.codex/AGENTS.md` and Gemini's `~/.gemini/GEMINI.md` become links to the team instructions kept in `~/.claude/team/teammates/`.
+6. **Codex**: Codex's folder (settings, memory, sessions) lives in `~/.config/codex` (`CODEX_HOME`, set in `zsh/.zshenv`) and is a link to the `codex` folder in your OneDrive, the same way as `~/.ssh`. The OneDrive folder is created if it doesn't exist. Anything in an old `~/.codex` that OneDrive doesn't have is copied across, and `~/.codex` goes to the backup. Apps opened from the Dock or Finder don't read zsh's files, so a login item (`~/Library/LaunchAgents/local.dotfiles.codex-home.plist`) sets `CODEX_HOME` for them at every login; apps already open when you install need a restart.
 7. **Git and GitHub**: asks for your name and email, logs in to GitHub with `gh` in the browser, then picks your SSH key: `~/.ssh/id_ed25519` if it exists, otherwise any key in `~/.ssh` that GitHub already has for logging in (pointed at github.com in `~/.ssh/config.d/github`). It creates a new `id_ed25519` only when there's none, and asks first if `~/.ssh` isn't linked to OneDrive. It writes the git identity and makes sure the key is on GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
 8. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies these preferences:
    - **Appearance**: system accent, yellow highlight, scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass
    - **Language & Region**: English (US) first, Portuguese (Portugal) second, with Portugal as the region
-   - **Desktop & Dock**: small, auto-hiding Dock on the right, Scale effect, minimise into the app icon, no indicators or recents. On the first run, it pins Ghostty, Claude, ChatGPT, Gemini, Chrome and System Settings if installed. Mission Control groups windows by app, the desktop hides icons and widgets, documents use tabs only when requested, and closing asks whether to keep changes.
+   - **Desktop & Dock**: small, auto-hiding Dock on the right, Scale effect, minimise into the app icon, no indicators or recents. On the first run, it pins Ghostty, ChatGPT, Chrome and System Settings if installed. Mission Control groups windows by app, the desktop hides icons and widgets, documents use tabs only when requested, and closing asks whether to keep changes.
    - **Accessibility**: Everforest green pointer (`#A7C080`), Live Captions in JetBrains Mono 32
    - **Trackpad**: tap to click, tap-drag, natural scrolling off, App Exposé gesture on, Show Desktop gesture off
    - **Control Center and menu bar**: clock shows the day of the week and AM/PM, with the date when space allows. The menu bar shows battery percentage and hides Energy Mode, Timer, Spotlight and Siri AI. iPhone Live Activities are enabled and hidden on the lock screen.
@@ -51,8 +51,8 @@ Options, as environment variables:
 | Variable | Effect |
 | --- | --- |
 | `ONEDRIVE_SSH_DIR=name` | Use a different folder in OneDrive instead of `dot-ssh` |
-| `ONEDRIVE_CLAUDE_DIR=name` | Use a different folder in OneDrive instead of `claude` |
-| `DOTFILES_SKIP="onedrive ssh claude github macos debloat"` | Skip any of those steps |
+| `ONEDRIVE_CODEX_DIR=name` | Use a different folder in OneDrive instead of `codex` |
+| `DOTFILES_SKIP="onedrive ssh codex github macos debloat"` | Skip any of those steps |
 
 ## What goes where
 
@@ -68,7 +68,7 @@ Options, as environment variables:
 
 Because the configs are links, editing a file in `~/.config` edits the repo. Commit from here.
 
-Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, `~/.claude`, ...) is moved to `~/.local/state/dotfiles/backup/<timestamp>/`, never deleted. `git/local` and `git/allowed_signers` are generated per Mac and not tracked.
+Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, `~/.codex`, `~/.zsh_history`, ...) is moved to `~/.local/state/dotfiles/backup/<timestamp>/`, never deleted. `git/local` and `git/allowed_signers` are generated per Mac and not tracked.
 
 ## zsh
 
@@ -91,8 +91,9 @@ Put machine-specific settings in `zsh/conf.d/local.zsh`; git ignores it.
 
 JetBrains Mono 12, Nord colours, and ⌃` toggles a quick terminal from any app (allow Ghostty under System Settings › Privacy & Security › Accessibility). Left ⌥ acts as Alt.
 
-## OneDrive: SSH and Claude Code
+## OneDrive: SSH and Codex
 
-Keys stay in OneDrive, so every Mac signed in to the same account shares them. In Finder, right-click the OneDrive `dot-ssh` and `claude` folders and choose **Always Keep on This Device** so they are never cloud-only placeholders.
+Keys stay in OneDrive, so every Mac signed in to the same account shares them. In Finder, right-click the OneDrive `dot-ssh` and `codex` folders and choose **Always Keep on This Device** so they are never cloud-only placeholders.
 
-The `claude` folder also holds live session files, so use it from one Mac at a time; two Macs running Claude Code against it at once make OneDrive conflict copies.
+The `codex` folder also holds live session files, so use it from one Mac at a time; two Macs running Codex against it at once make OneDrive conflict copies.
+
