@@ -6,6 +6,7 @@ cask "google-chrome"       # Google Chrome (made the default browser)
 cask "visual-studio-code"  # Visual Studio Code
 cask "keka"                # Keka: archives
 cask "rectangle"           # Rectangle: window management
+cask "bettercmdtab"        # BetterCmdTab: switch windows with Cmd+Tab
 cask "thor"                # Thor Launcher: open apps with keyboard shortcuts
 cask "balenaetcher"        # balenaEtcher: writes disk images to USB sticks and SD cards
 cask "whatsapp"            # WhatsApp
