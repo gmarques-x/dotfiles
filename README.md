@@ -20,7 +20,7 @@ The installer runs these steps in order, and is safe to run again; finished step
 2. **OneDrive**: installs it, opens it, and **waits** while you sign in and let it sync. Press Return when the wizard is done.
 3. **Apps and command-line tools**:
    - Fonts and command-line tools from the [`Brewfile`](Brewfile), always: JetBrains Mono, SF Pro, starship, eza, bat, zoxide, fzf, ripgrep, fd, jq, wget, watch, htop, dust, duf, glow, fastfetch, gh, git-delta, atuin, the zsh plugins, Neovim (with tree-sitter for LazyVim), lazygit, Python, mtr, nmap, ipcalc, and yazi with its preview helpers (poppler, sevenzip, resvg, ffmpeg, imagemagick).
-   - Then the apps in [`Brewfile.apps`](Brewfile.apps), as a list to choose from: Ghostty, Google Chrome, VS Code, Keka, balenaEtcher, WhatsApp, Microsoft Teams, Steam, Modrinth, Vorssaint, Wireshark, ChatGPT, Codex, Claude and Claude Code. **Space** marks or unmarks an app, **⌃A** marks all, **Return** installs the marked ones (none marked: no apps). The first time nothing is marked; after that, your last choice is (it's kept in `~/.local/state/dotfiles/apps`, and `dots-sync` reuses it without asking). Unmarking an app doesn't uninstall it.
+   - Then the apps in [`Brewfile.apps`](Brewfile.apps), as a list to choose from. **Space** marks or unmarks an app, **⌃A** marks all, **Return** installs the marked ones (none marked: no apps). The first time nothing is marked; after that, your last choice is (it's kept in `~/.local/state/dotfiles/apps`, and `dots-sync` reuses it without asking). Unmarking an app doesn't uninstall it.
    - Rosetta is installed first when Steam is chosen (Steam is an Intel app), and Chrome is made the default browser when chosen (macOS asks you to confirm).
    - An app that's already in /Applications but wasn't installed by Homebrew is left alone. Sign in to each app and CLI on first launch.
 4. **Folders and configs**: creates `~/Developer`, `~/.hushlogin` and the XDG folders (`~/.config`, `~/.cache`, `~/.local/share`, `~/.local/state`, `~/.local/bin`), links the configs into place (see below), and moves dotfiles that used to land in `~/` (`.zsh_history`, `.zsh_sessions`, `.zcompdump*`, `.lesshst`, `.python_history`, `.vimrc`, `.vim`, `.viminfo`, `.wget-hsts`, `.atuin`) to their XDG places or the backup. Claude Code's settings live in `~/.config/claude` (`CLAUDE_CONFIG_DIR`). The installer copies missing files from an existing `~/.claude`, backs up the old folder or link, and links `~/.claude` to `~/.config/claude`. It also migrates a legacy `~/.claude.json` and backs it up. Apps opened from the Dock or Finder don't read zsh's files, so a login item (`~/Library/LaunchAgents/local.dotfiles.environment.plist`) sets `CODEX_HOME` and `CLAUDE_CONFIG_DIR` for them at every login (apps already open when you install need a restart). It also imports your zsh history into atuin (once), installs yazi's plugins and flavors (`ya pkg install`), and downloads Neovim's plugins (LazyVim).
@@ -70,27 +70,53 @@ Options, as environment variables:
 | `eza/`, `bat/`, `yazi/`, `fastfetch/`, `htop/`, `glow/`, `lazygit/`, `atuin/`, `wget/` | the same names in `~/.config` |
 | `nvim/` | `~/.config/nvim` (LazyVim) |
 | `vim/` | `~/.config/vim` (Vim 9.1 reads `~/.config/vim/vimrc`, so there's no `~/.vimrc`) |
-| `vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
+| `vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` and `~/.config/vscode/settings.json` |
 | `bin/theme`, `bin/dots-sync` | `~/.local/bin/theme`, `~/.local/bin/dots-sync` |
 | `ssh/config` | copied to `~/.ssh/config` only if there isn't one |
-| `thor/`, `rectangle/` | `~/.config/thor`, `~/.config/rectangle` |
+| `rectangle/` | `~/.config/rectangle` (a link, and the source of the import below) |
+| `thor/` (seed only) | its `apps.json` is copied once into `~/.config/thor`, a local folder that is not in Git |
 
-**Thor and Rectangle.** The installer copies these snapshots into each installed app's native settings on a fresh setup. It preserves existing app settings.
+**App settings.** The installer uses `XDG_CONFIG_HOME` (usually `~/.config`) for settings when an app supports it or a link can redirect just the configuration. App profiles, databases, caches, and macOS containers stay in their native locations.
 
-- **Thor** reads `~/Library/Application Support/Thor/apps.json`. The installer creates this file when it is absent and sets the menu bar preference if it is unset. Thor skips bindings for target apps that are missing when it starts. The snapshot keeps the complete list, and you can import it from Thor after installing the target apps.
-- **Rectangle** imports `rectangle/com.knollsoft.Rectangle.plist` into `com.knollsoft.Rectangle` when the app has no existing preferences. Rectangle may ask for Accessibility access, and macOS may ask for approval to launch it at login.
+- **Thor** keeps the live bindings in `~/.config/thor/apps.json`. The installer links Thor's Application Support folder to that directory and retains the old copy in its backup folder. Close Thor before migrating. If the move is blocked, the copy fallback writes only with Thor closed, no container and a native folder that is absent or real, and never through a link. Nothing is changed when Thor's folder or its `apps.json` resolves into this checkout, or when `~/.config/thor/apps.json` is a link. If Thor's folder changes while it moves, it goes back and both copies stay. The menu bar preference still uses macOS defaults, and `~/.config/thor/defaults.plist` exposes its saved snapshot.
+- **Rectangle** imports the saved shortcuts and preferences on first setup and uses macOS preferences while running. Rectangle may ask for Accessibility and login-item approval.
+- **BetterCmdTab** syncs settings both ways with `~/.config/bettercmdtab/config.json`. The installer creates an empty JSON object to opt in when the file is absent. The file stays local, so nothing is created when `~/.config` or the file links into this checkout, and such links are kept and reported. Recorded shortcuts and per-Mac state stay in the app's preferences.
+- **VS Code** uses the same tracked `settings.json` from its macOS path and `~/.config/vscode/settings.json`.
 
-Both apps read the seeded settings on their next start. If you install either one later, run the installer or `dots-sync --all` before opening the app. To save later changes, copy Thor's native `apps.json` into the snapshot, or export Rectangle's settings with `defaults export com.knollsoft.Rectangle -` and keep the shortcut and behavior keys in its snapshot.
+Run `bash bin/apply-app-configs` to apply the Thor, BetterCmdTab and VS Code changes without the full installer. Use the installer to seed Rectangle on a fresh setup. If Thor's move stops after staging the configuration, check the reported backup path and rerun with Thor closed. Run `bash tests/app-configs.test.sh` to verify the installer behavior in a temporary home directory.
 
-Run `bash tests/app-configs.test.sh` to check the setup with a temporary home directory.
+### App-by-app matrix
+
+| Cask | Live settings |
+| --- | --- |
+| `ghostty` | `~/.config/ghostty`, read by Ghostty itself |
+| `google-chrome` | Native profile. The official override moves the whole profile, so it is not used |
+| `visual-studio-code` | Native `settings.json` and `~/.config/vscode/settings.json`, both the tracked file. App state, profiles and databases stay native |
+| `keka` | Sandboxed preferences in its container. Nothing to relocate |
+| `rectangle` | `defaults` domain seeded from `rectangle/` |
+| `bettercmdtab` | `~/.config/bettercmdtab/config.json`, honors an absolute `XDG_CONFIG_HOME` |
+| `thor` | `~/.config/thor/apps.json` through a folder link, seeded from `thor/` |
+| `balenaetcher` | Native location, not verified for XDG, so left alone |
+| `whatsapp` | Native location, not verified for XDG, so left alone |
+| `microsoft-teams` | Native location, not verified for XDG, so left alone |
+| `steam` | Native location, not verified for XDG. Its whole profile is never relocated |
+| `modrinth` | Native app folder. The official override moves all data, including `app.db`, so it is not used |
+| `vorssaint` | Version 3.4.4 only reads `~/.config/vorssaint/settings.plist` at startup and does not write it. It is never seeded, and its native backup may hold private snippets. Use the vendor export only when you want startup overrides |
+| `wireshark-app` | Reads `~/.config/wireshark`, per its documentation |
+| `chatgpt` | Native location, not verified for XDG, so left alone |
+| `codex` | `~/.config/codex` through `CODEX_HOME` |
+| `claude` | Native location, not verified for XDG, so left alone |
+| `claude-code` | `~/.config/claude` through `CLAUDE_CONFIG_DIR`, with `~/.claude` linked there |
+
+To add a verified future app, find the vendor's documented path or an official XDG setting, check it against the installed version, then add a seed or link function to `macos/app-configs.sh` that never overwrites, a fixture test and a row here. Leave the app native when only a whole-data override exists.
 
 VS Code's "Home" workspace is written to `~/.config/vscode/home.code-workspace` (drag it into the Dock to open VS Code on your home folder).
 
-Because the configs are links, editing a file in `~/.config` edits the repo. Commit from here.
+Most configs in `~/.config` are links, so editing them edits the repo. Commit from here. The local exceptions are `~/.config/thor` and `~/.config/bettercmdtab`, which stay on this Mac.
 
 Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, `~/.codex`, `~/.zsh_history`, `~/.vimrc`, ...) is moved to `~/.local/state/dotfiles/backup/<timestamp>/`, never deleted. `git/local` and `git/allowed_signers` are generated per Mac and not tracked, nor are the colour files `theme` writes.
 
-Only four things the dotfiles set up stay directly in `~/`: `~/.zshenv` (zsh reads it only from there; it points zsh at `~/.config/zsh`), `~/.ssh` (ssh only looks there), `~/.hushlogin` (an empty file that hides the "Last login" line in new terminals; macOS only looks there) and `~/.vscode` (VS Code's extensions; it has no setting to move them).
+Only four things the dotfiles set up stay directly in `~/`: `~/.zshenv` (zsh reads it only from there; it points zsh at `~/.config/zsh`), `~/.ssh` (ssh only looks there), `~/.hushlogin` (an empty file that hides the "Last login" line in new terminals; macOS only looks there) and `~/.vscode` (where VS Code keeps extensions by default).
 
 ## Keeping Macs in sync
 

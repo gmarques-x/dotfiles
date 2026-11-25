@@ -395,13 +395,15 @@ mkdir -p "$CONFIG" "$CACHE" "$DATA" "$XSTATE" "$HOME/.local/bin" "$HOME/Develope
 touch "$HOME/.hushlogin"   # no "Last login" line at the top of new terminals
 ok "~/Developer and the XDG folders ($(pretty "$CONFIG"), $(pretty "$CACHE"), $(pretty "$DATA"), $(pretty "$XSTATE"))"
 link "$DOTFILES/zsh/.zshenv"  "$HOME/.zshenv"
-for tool in zsh ghostty starship eza bat yazi git fastfetch atuin htop glow lazygit nvim vim wget thor rectangle; do
+for tool in zsh ghostty starship eza bat yazi git fastfetch atuin htop glow lazygit nvim vim wget rectangle; do
   link "$DOTFILES/$tool" "$CONFIG/$tool"
 done
-# Thor and Rectangle keep their settings elsewhere: copy the snapshots in, if the apps are installed.
+# Thor, Rectangle and BetterCmdTab keep their settings elsewhere: seed them from the snapshots, if the apps are installed.
+# Thor's live apps.json goes to $CONFIG/thor (a local folder, not the repo's thor/ seed).
 . "$DOTFILES/macos/app-configs.sh"
 apply_thor_config
 apply_rectangle_config
+apply_bettercmdtab_config
 link "$DOTFILES/vscode/settings.json" "$HOME/Library/Application Support/Code/User/settings.json"
 link "$DOTFILES/bin/theme"     "$HOME/.local/bin/theme"
 link "$DOTFILES/bin/dots-sync" "$HOME/.local/bin/dots-sync"
@@ -415,6 +417,7 @@ link "$DOTFILES/atuin/themes" "$DATA/atuin/themes"
 # VS Code's "Home" workspace (drag it into the Dock to open VS Code on your home folder).
 mkdir -p "$CONFIG/vscode"
 printf '{\n  "folders": [{ "name": "Home", "path": "%s" }],\n  "settings": {}\n}\n' "$HOME" > "$CONFIG/vscode/home.code-workspace"
+apply_vscode_xdg_link
 
 # zsh reads ~/.zprofile and ~/.zshrc only without ZDOTDIR; ours live in ~/.config/zsh.
 for f in .zprofile .zshrc .zlogin; do

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Scoped apply of the app settings that follow XDG_CONFIG_HOME, without the full
+# installer: Thor's live apps.json folder, BetterCmdTab's config.json and VS Code's
+# ~/.config/vscode/settings.json link. Run it from the repo (bash bin/apply-app-configs).
+# Close Thor first, or its path change is skipped and reported. Existing settings win,
+# replaced folders and links go to $XDG_STATE_HOME/dotfiles/backup/<timestamp>/.
+set -uo pipefail
+
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
+BACKUP="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/backup/$(date +%Y%m%d-%H%M%S)"
+DIM= N=
+info() { printf '    %s\n' "$1"; }
+ok()   { printf '    ✓ %s\n' "$1"; }
+warn() { printf '    ! %s\n' "$1"; }
+pretty() { printf '%s' "${1/#"$HOME"/\~}"; }
+backup() {
+  local src="$1" rel dest
+  rel="${src#"$HOME"/}"
+  dest="$BACKUP/$rel"
+  mkdir -p "$(dirname "$dest")" || return 1
+  mv "$src" "$dest" || return 1
+  info "backed up ~/$rel → $(pretty "$dest")"
+}
+
+mkdir -p "$CONFIG" || exit 1
+. "$DOTFILES/macos/app-configs.sh"
+apply_thor_config
+apply_bettercmdtab_config
+apply_vscode_xdg_link
