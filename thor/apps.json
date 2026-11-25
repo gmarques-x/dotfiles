@@ -1,0 +1,9 @@
+[
+  {"appBundleURL":"file:///Applications/Ghostty.app/","appDisplayName":"Ghostty.app","shortcut":"shift+alt+z"},
+  {"appBundleURL":"file:///Applications/ChatGPT.app/","appDisplayName":"ChatGPT.app","shortcut":"shift+alt+x"},
+  {"appBundleURL":"file:///Applications/Google%20Chrome.app/","appDisplayName":"Google Chrome.app","shortcut":"shift+alt+a"},
+  {"appBundleURL":"file:///System/Applications/Mail.app/","appDisplayName":"Mail.app","shortcut":"shift+alt+s"},
+  {"appBundleURL":"file:///Applications/WhatsApp.app/","appDisplayName":"WhatsApp.app","shortcut":"shift+alt+d"},
+  {"appBundleURL":"file:///System/Library/CoreServices/Finder.app/","appDisplayName":"Finder.app","shortcut":"shift+alt+w"},
+  {"appBundleURL":"file:///Applications/Visual%20Studio%20Code.app/","appDisplayName":"Visual Studio Code.app","shortcut":"shift+alt+e"}
+]

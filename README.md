@@ -73,6 +73,16 @@ Options, as environment variables:
 | `vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 | `bin/theme`, `bin/dots-sync` | `~/.local/bin/theme`, `~/.local/bin/dots-sync` |
 | `ssh/config` | copied to `~/.ssh/config` only if there isn't one |
+| `thor/`, `rectangle/` | `~/.config/thor`, `~/.config/rectangle` |
+
+**Thor and Rectangle.** The installer copies these snapshots into each installed app's native settings on a fresh setup. It preserves existing app settings.
+
+- **Thor** reads `~/Library/Application Support/Thor/apps.json`. The installer creates this file when it is absent and sets the menu bar preference if it is unset. Thor skips bindings for target apps that are missing when it starts. The snapshot keeps the complete list, and you can import it from Thor after installing the target apps.
+- **Rectangle** imports `rectangle/com.knollsoft.Rectangle.plist` into `com.knollsoft.Rectangle` when the app has no existing preferences. Rectangle may ask for Accessibility access, and macOS may ask for approval to launch it at login.
+
+Both apps read the seeded settings on their next start. If you install either one later, run the installer or `dots-sync --all` before opening the app. To save later changes, copy Thor's native `apps.json` into the snapshot, or export Rectangle's settings with `defaults export com.knollsoft.Rectangle -` and keep the shortcut and behavior keys in its snapshot.
+
+Run `bash tests/app-configs.test.sh` to check the setup with a temporary home directory.
 
 VS Code's "Home" workspace is written to `~/.config/vscode/home.code-workspace` (drag it into the Dock to open VS Code on your home folder).
 

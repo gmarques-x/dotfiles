@@ -395,9 +395,13 @@ mkdir -p "$CONFIG" "$CACHE" "$DATA" "$XSTATE" "$HOME/.local/bin" "$HOME/Develope
 touch "$HOME/.hushlogin"   # no "Last login" line at the top of new terminals
 ok "~/Developer and the XDG folders ($(pretty "$CONFIG"), $(pretty "$CACHE"), $(pretty "$DATA"), $(pretty "$XSTATE"))"
 link "$DOTFILES/zsh/.zshenv"  "$HOME/.zshenv"
-for tool in zsh ghostty starship eza bat yazi git fastfetch atuin htop glow lazygit nvim vim wget; do
+for tool in zsh ghostty starship eza bat yazi git fastfetch atuin htop glow lazygit nvim vim wget thor rectangle; do
   link "$DOTFILES/$tool" "$CONFIG/$tool"
 done
+# Thor and Rectangle keep their settings elsewhere: copy the snapshots in, if the apps are installed.
+. "$DOTFILES/macos/app-configs.sh"
+apply_thor_config
+apply_rectangle_config
 link "$DOTFILES/vscode/settings.json" "$HOME/Library/Application Support/Code/User/settings.json"
 link "$DOTFILES/bin/theme"     "$HOME/.local/bin/theme"
 link "$DOTFILES/bin/dots-sync" "$HOME/.local/bin/dots-sync"
