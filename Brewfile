@@ -44,6 +44,7 @@ brew "python"           # python3 and pip3
 brew "mtr"       # traceroute and ping together
 brew "nmap"
 brew "ipcalc"
+brew "wireguard-tools" # wg and wg-quick for Lab VPN, with wireguard-go as a dependency
 
 # yazi file manager and its preview helpers
 brew "yazi"

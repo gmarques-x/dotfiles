@@ -20,6 +20,7 @@ The installer runs these steps in order, and is safe to run again; finished step
 2. **OneDrive**: installs it, opens it, and **waits** while you sign in and let it sync. Press Return when the wizard is done.
 3. **Apps and command-line tools**:
    - Fonts and command-line tools from the [`Brewfile`](Brewfile), always: JetBrains Mono, SF Pro, starship, eza, bat, zoxide, fzf, ripgrep, fd, jq, wget, watch, htop, dust, duf, glow, fastfetch, gh, git-delta, atuin, the zsh plugins, Neovim (with tree-sitter for LazyVim), lazygit, Python, mtr, nmap, ipcalc, and yazi with its preview helpers (poppler, sevenzip, resvg, ffmpeg, imagemagick).
+   - [Lab VPN](lab-vpn/README.md) is built from source and installed in `~/Applications`. Its WireGuard commands come from the Brewfile. Profiles and private keys stay in the local macOS Keychain.
    - Then the apps in [`Brewfile.apps`](Brewfile.apps), as a list to choose from. **Space** marks or unmarks an app, **⌃A** marks all, **Return** installs the marked ones (none marked: no apps). The first time nothing is marked; after that, your last choice is (it's kept in `~/.local/state/dotfiles/apps`, and `dots-sync` reuses it without asking). Unmarking an app doesn't uninstall it.
    - Rosetta is installed first when Steam is chosen (Steam is an Intel app), and Chrome is made the default browser when chosen (macOS asks you to confirm).
    - An app that's already in /Applications but wasn't installed by Homebrew is left alone. Sign in to each app and CLI on first launch.

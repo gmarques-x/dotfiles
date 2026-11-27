@@ -5,7 +5,7 @@
 #   1. Command Line Tools (git, compilers) and Homebrew
 #   2. OneDrive (then waits while you finish its setup wizard)
 #   3. Command-line tools and fonts (Brewfile), then the apps you pick from
-#      Brewfile.apps (Rosetta first, for Steam), and Chrome as the default browser
+#      Brewfile.apps (Rosetta first, for Steam), Lab VPN, and Chrome as the default browser
 #   4. Creates ~/Developer and the XDG folders, links the configs into
 #      ~/.config (and ~/.zshenv, VS Code's settings, ~/.local/bin/theme and
 #      dots-sync), moves stray dotfiles out of ~/, and installs the yazi and
@@ -321,6 +321,15 @@ else
   else
     # One item failing shouldn't stop the rest of the setup.
     warn "some of the Brewfile didn't install (see above); run install.sh again later to retry"
+  fi
+
+  info "Lab VPN"
+  if ! "$BREW" list --formula wireguard-tools >/dev/null 2>&1; then
+    warn "Lab VPN requires wireguard-tools; run install.sh again after it installs"
+  elif "$DOTFILES/lab-vpn/install.sh" "$HOME/Applications" "$BACKUP/Applications"; then
+    ok "installed at ~/Applications/Lab VPN.app"
+  else
+    warn "Lab VPN couldn't be installed; run install.sh again to retry"
   fi
 
   info "Apps (Brewfile.apps)"
