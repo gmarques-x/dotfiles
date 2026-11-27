@@ -33,9 +33,9 @@
 	<key>maximize</key>
 	<dict><key>keyCode</key><integer>36</integer><key>modifierFlags</key><integer>655360</integer></dict>
 	<key>nextDisplay</key>
-	<dict/>
+	<dict><key>keyCode</key><integer>42</integer><key>modifierFlags</key><integer>655360</integer></dict>
 	<key>previousDisplay</key>
-	<dict/>
+	<dict><key>keyCode</key><integer>39</integer><key>modifierFlags</key><integer>655360</integer></dict>
 	<key>restore</key>
 	<dict><key>keyCode</key><integer>51</integer><key>modifierFlags</key><integer>655360</integer></dict>
 	<key>rightHalf</key>
