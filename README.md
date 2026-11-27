@@ -23,7 +23,7 @@ The installer runs these steps in order, and is safe to run again; finished step
    - Then the apps in [`Brewfile.apps`](Brewfile.apps), as a list to choose from. **Space** marks or unmarks an app, **⌃A** marks all, **Return** installs the marked ones (none marked: no apps). The first time nothing is marked; after that, your last choice is (it's kept in `~/.local/state/dotfiles/apps`, and `dots-sync` reuses it without asking). Unmarking an app doesn't uninstall it.
    - Rosetta is installed first when Steam is chosen (Steam is an Intel app), and Chrome is made the default browser when chosen (macOS asks you to confirm).
    - An app that's already in /Applications but wasn't installed by Homebrew is left alone. Sign in to each app and CLI on first launch.
-4. **Folders and configs**: creates `~/Developer`, `~/.hushlogin` and the XDG folders (`~/.config`, `~/.cache`, `~/.local/share`, `~/.local/state`, `~/.local/bin`), links the configs into place (see below), and moves dotfiles that used to land in `~/` (`.zsh_history`, `.zsh_sessions`, `.zcompdump*`, `.lesshst`, `.python_history`, `.vimrc`, `.vim`, `.viminfo`, `.wget-hsts`, `.atuin`) to their XDG places or the backup. It creates a local directory at `~/.config/claude` and links a fresh `~/.config/codex` to the checkout. It also imports your zsh history into atuin (once), installs yazi's plugins and flavors (`ya pkg install`), and downloads Neovim's plugins (LazyVim).
+4. **Folders and configs**: creates `~/Developer`, `~/.hushlogin` and the XDG folders (`~/.config`, `~/.cache`, `~/.local/share`, `~/.local/state`, `~/.local/bin`), links the configs into place (see below), and moves dotfiles that used to land in `~/` (`.zsh_history`, `.zsh_sessions`, `.zcompdump*`, `.lesshst`, `.python_history`, `.vimrc`, `.vim`, `.viminfo`, `.wget-hsts`, `.atuin`) to their XDG places or the backup. It also imports your zsh history into atuin (once), installs yazi's plugins and flavors (`ya pkg install`), and downloads Neovim's plugins (LazyVim).
 5. **`~/.ssh`**: becomes a link to the `dot-ssh` folder in your OneDrive (a link to any other folder is replaced). Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
 6. **Git and GitHub**: asks for your name and email, logs in to GitHub with `gh` in the browser, then picks your SSH key: `~/.ssh/id_ed25519` if it exists, otherwise any key in `~/.ssh` that GitHub already has for logging in (pointed at github.com in `~/.ssh/config.d/github`). It creates a new `id_ed25519` only when there's none, and asks first if `~/.ssh` isn't linked to OneDrive. It writes the git identity and makes sure the key is on GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
@@ -50,7 +50,7 @@ The installer runs these steps in order, and is safe to run again; finished step
 
 8. **Siri, suggestions and ads off**: [`macos/debloat.sh`](macos/debloat.sh) turns off Siri ("Hey Siri" and its menu item too), Look Up suggestions, personalised ads and Game Center, then [`macos/agents.sh`](macos/agents.sh) stops about 15 Apple background agents for them (Siri, suggestions, ads, News, Tips; for your user only, no sudo, SIP stays on). They stop at your next login. `macos/agents.sh status` shows them, `macos/agents.sh enable` turns them back on.
 9. **Remove Apple apps**: lists whichever of GarageBand, iMovie, Keynote, Numbers and Pages are installed, plus GarageBand's sound library (several GB, kept if Logic Pro is installed), and after you confirm moves them to the Trash. They can be reinstalled from the App Store. The other built-in apps (Safari, Mail, Music, Photos, News, Stocks, ...) are on the read-only system volume, so macOS doesn't let them be removed.
-10. **Theme**: applies the theme (Nord the first time); see [Themes](#themes).
+10. **Theme**: applies Everforest Dark Medium on each install. See [Themes](#themes).
 
 Options, as environment variables:
 
@@ -101,10 +101,10 @@ Run `bash bin/apply-app-configs` to apply the Thor, BetterCmdTab and VS Code cha
 | `modrinth` | Native app folder. The official override moves all data, including `app.db`, so it is not used |
 | `vorssaint` | Version 3.4.4 only reads `~/.config/vorssaint/settings.plist` at startup and does not write it. It is never seeded, and its native backup may hold private snippets. Use the vendor export only when you want startup overrides |
 | `wireshark-app` | Reads `~/.config/wireshark`, per its documentation |
-| `codex` | `~/.config/codex` links to [the repo’s Codex directory](codex/README.md) on a fresh setup |
-| `claude`, `claude-code` | Directory created at `~/.config/claude` |
 
 To add a verified future app, find the vendor's documented path or an official XDG setting, check it against the installed version, then add a seed or link function to `macos/app-configs.sh` that never overwrites, a fixture test and a row here. Leave the app native when only a whole-data override exists.
+
+Claude, Claude Code, Codex, and ChatGPT are available as standard Homebrew installs in the app picker. Each app manages its own data directories. For an earlier Codex setup, see [Codex home](CODEX-HOME.md).
 
 VS Code's "Home" workspace is written to `~/.config/vscode/home.code-workspace` (drag it into the Dock to open VS Code on your home folder).
 

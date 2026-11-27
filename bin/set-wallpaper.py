@@ -30,7 +30,10 @@ def apply(image):
     choice = {"Provider": "com.apple.wallpaper.choice.image", "Files": [],
               "Configuration": plistlib.dumps(config, fmt=plistlib.FMT_BINARY)}
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    desktop = {"Content": {"Choices": [choice], "Shuffle": "$null", "EncodedOptionValues": "$null"},
+    # WallpaperAgent stores the Fill Screen placement under the ID "Crop".
+    options = {"values": {"placement": {"picker": {"_0": {"id": "Crop"}}}}}
+    desktop = {"Content": {"Choices": [choice], "Shuffle": "$null",
+                           "EncodedOptionValues": plistlib.dumps(options, fmt=plistlib.FMT_BINARY)},
                "LastSet": now, "LastUse": now}
 
     if index["AllSpacesAndDisplays"] == "$null":

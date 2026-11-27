@@ -12,7 +12,6 @@ export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 export SHELL_SESSION_DIR="$XDG_STATE_HOME/zsh/sessions"   # Terminal.app's per-window history
 export LESSHISTFILE="$XDG_STATE_HOME/less/history"
 export PYTHON_HISTORY="$XDG_STATE_HOME/python/history"
-export CODEX_HOME="${CODEX_HOME:-$HOME/.config/codex}"
 export ATUIN_HOME="$XDG_DATA_HOME/atuin"                  # history; otherwise ~/.atuin
 export WGETRC="$XDG_CONFIG_HOME/wget/wgetrc"              # keeps ~/.wget-hsts out of ~/
 export LG_CONFIG_FILE="$XDG_CONFIG_HOME/lazygit/config.yml,$XDG_CONFIG_HOME/lazygit/theme.yml"

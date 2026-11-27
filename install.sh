@@ -8,9 +8,8 @@
 #      Brewfile.apps (Rosetta first, for Steam), and Chrome as the default browser
 #   4. Creates ~/Developer and the XDG folders, links the configs into
 #      ~/.config (and ~/.zshenv, VS Code's settings, ~/.local/bin/theme and
-#      dots-sync), creates a local config directory for Claude,
-#      links a fresh Codex home to the repo,
-#      moves stray dotfiles out of ~/, and installs the yazi and Neovim plugins
+#      dots-sync), moves stray dotfiles out of ~/, and installs the yazi and
+#      Neovim plugins
 #   5. Links ~/.ssh to the "dot-ssh" folder in OneDrive
 #   6. Git identity, GitHub login and SSH keys on GitHub
 #   7. macOS settings (macos/settings.sh)
@@ -18,7 +17,7 @@
 #      agents (macos/debloat.sh)
 #  9. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
 #      Pages) and GarageBand's sound library to the Trash, after asking
-#  10. Applies the theme (bin/theme; Nord unless you picked another)
+#  10. Applies Everforest Dark Medium (bin/theme)
 #
 # Safe to run again: anything already done is skipped. Anything replaced is
 # moved (never deleted) to $XDG_STATE_HOME/dotfiles/backup/<timestamp>/
@@ -434,22 +433,6 @@ for f in .zsh_history .zsh_sessions .zcompdump* .lesshst .python_history .vimrc 
   done
 done
 
-# Preserve any Claude symlink from an earlier installation.
-claude_config="$HOME/.config/claude"
-if [ ! -L "$claude_config" ]; then
-  mkdir -p "$claude_config" || warn "could not create $(pretty "$claude_config")"
-fi
-
-# A live Codex home may contain open databases. Preserve existing paths.
-codex_home="$HOME/.config/codex"
-if [ -L "$codex_home" ] && [ "$(readlink "$codex_home")" = "$DOTFILES/codex" ]; then
-  ok "$(pretty "$codex_home")"
-elif [ -e "$codex_home" ] || [ -L "$codex_home" ]; then
-  warn "existing $(pretty "$codex_home") preserved; see codex/README.md to migrate it"
-else
-  link "$DOTFILES/codex" "$codex_home"
-fi
-
 # The tools' own downloads, with the same folders zsh gives them (zsh/.zshenv).
 export XDG_CONFIG_HOME="$CONFIG" XDG_CACHE_HOME="$CACHE" XDG_DATA_HOME="$DATA" XDG_STATE_HOME="$XSTATE"
 export ATUIN_HOME="$DATA/atuin"
@@ -671,10 +654,10 @@ fi
 step "Theme (colours for every tool, macOS appearance, wallpaper)"
 if skip theme; then
   skipped
-elif THEME_NO_CODEX=1 zsh "$DOTFILES/bin/theme" apply; then
+elif THEME_NO_CODEX=1 zsh "$DOTFILES/bin/theme" everforest-dark; then
   info "${DIM}Change it any time with: theme${N}"
 else
-  warn "the theme didn't fully apply; run: theme apply"
+  warn "the theme didn't fully apply; run: theme everforest-dark"
 fi
 
 # ---------------------------------------------------------------- done

@@ -28,4 +28,3 @@ nvim/lazy-lock.json
 lazygit/state.yml
 # Codex writes credentials, sessions, and machine-local state here.
 /codex/*
-!/codex/README.md
