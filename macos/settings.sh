@@ -165,6 +165,16 @@ hotkey_off() { w com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$1" "
 hotkey 29  true 97  0 1179648   # Screenshots: the whole screen to the clipboard, ⌘⇧A
 hotkey 31  true 115 1 1179648   # Screenshots: a selected area to the clipboard, ⌘⇧S
 hotkey 184 true 100 2 1179648   # Screenshots: the options toolbar, ⌘⇧D
+# Keyboard Shortcuts > Mission Control.
+hotkey 79  true  65535 33 655360    # Move left a space: ⌥⇧º
+hotkey 80  false 65535 123 8781824  # Alternate left shortcut: off
+hotkey 81  true  65535 30 655360    # Move right a space: ⌥⇧´
+hotkey 82  false 65535 124 8781824  # Alternate right shortcut: off
+hotkey 118 false 49 18 655360      # Switch to Desktop 1: off
+hotkey 119 false 50 19 655360      # Switch to Desktop 2: off
+hotkey 120 false 51 20 655360      # Switch to Desktop 3: off
+hotkey 121 false 52 21 655360      # Switch to Desktop 4: off
+hotkey 122 false 53 23 655360      # Switch to Desktop 5: off
 # Keyboard Shortcuts > Windows (IDs from KeyboardSettings' DefaultShortcutsTable).
 hotkey 237 true 13  36 655360   # Fill: ⌥⇧Return
 hotkey 240 true 104 4  655360   # Left half: ⌥⇧H
