@@ -26,3 +26,6 @@ yazi/flavors/
 # Neovim and lazygit state that may land next to their configs
 nvim/lazy-lock.json
 lazygit/state.yml
+# Codex writes credentials, sessions, and machine-local state here.
+/codex/*
+!/codex/README.md

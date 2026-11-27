@@ -23,12 +23,11 @@ The installer runs these steps in order, and is safe to run again; finished step
    - Then the apps in [`Brewfile.apps`](Brewfile.apps), as a list to choose from. **Space** marks or unmarks an app, **⌃A** marks all, **Return** installs the marked ones (none marked: no apps). The first time nothing is marked; after that, your last choice is (it's kept in `~/.local/state/dotfiles/apps`, and `dots-sync` reuses it without asking). Unmarking an app doesn't uninstall it.
    - Rosetta is installed first when Steam is chosen (Steam is an Intel app), and Chrome is made the default browser when chosen (macOS asks you to confirm).
    - An app that's already in /Applications but wasn't installed by Homebrew is left alone. Sign in to each app and CLI on first launch.
-4. **Folders and configs**: creates `~/Developer`, `~/.hushlogin` and the XDG folders (`~/.config`, `~/.cache`, `~/.local/share`, `~/.local/state`, `~/.local/bin`), links the configs into place (see below), and moves dotfiles that used to land in `~/` (`.zsh_history`, `.zsh_sessions`, `.zcompdump*`, `.lesshst`, `.python_history`, `.vimrc`, `.vim`, `.viminfo`, `.wget-hsts`, `.atuin`) to their XDG places or the backup. Claude Code's settings live in `~/.config/claude` (`CLAUDE_CONFIG_DIR`). The installer copies missing files from an existing `~/.claude`, backs up the old folder or link, and links `~/.claude` to `~/.config/claude`. It also migrates a legacy `~/.claude.json` and backs it up. Apps opened from the Dock or Finder don't read zsh's files, so a login item (`~/Library/LaunchAgents/local.dotfiles.environment.plist`) sets `CODEX_HOME` and `CLAUDE_CONFIG_DIR` for them at every login (apps already open when you install need a restart). It also imports your zsh history into atuin (once), installs yazi's plugins and flavors (`ya pkg install`), and downloads Neovim's plugins (LazyVim).
+4. **Folders and configs**: creates `~/Developer`, `~/.hushlogin` and the XDG folders (`~/.config`, `~/.cache`, `~/.local/share`, `~/.local/state`, `~/.local/bin`), links the configs into place (see below), and moves dotfiles that used to land in `~/` (`.zsh_history`, `.zsh_sessions`, `.zcompdump*`, `.lesshst`, `.python_history`, `.vimrc`, `.vim`, `.viminfo`, `.wget-hsts`, `.atuin`) to their XDG places or the backup. It creates a local directory at `~/.config/claude` and links a fresh `~/.config/codex` to the checkout. It also imports your zsh history into atuin (once), installs yazi's plugins and flavors (`ya pkg install`), and downloads Neovim's plugins (LazyVim).
 5. **`~/.ssh`**: becomes a link to the `dot-ssh` folder in your OneDrive (a link to any other folder is replaced). Anything already in `~/.ssh` that OneDrive doesn't have is copied across first. If you have more than one OneDrive folder (personal and work), it asks which one.
-6. **Codex**: Codex's folder (settings, memory, sessions) lives in `~/.config/codex` (`CODEX_HOME`, set in `zsh/.zshenv`) and is a link to the `codex` folder in your OneDrive, the same way as `~/.ssh`. The OneDrive folder is created if it doesn't exist. Anything in an old `~/.codex` that OneDrive doesn't have is copied across, and `~/.codex` goes to the backup. Codex CLI and app-server SQLite databases live on this Mac in `~/.local/state/codex/sqlite` (`CODEX_SQLITE_HOME`). On an existing installation, quit ChatGPT and Codex CLI sessions once. The login item waits for the databases to close, copies and checks them, then enables the local directory for new launches.
-7. **Git and GitHub**: asks for your name and email, logs in to GitHub with `gh` in the browser, then picks your SSH key: `~/.ssh/id_ed25519` if it exists, otherwise any key in `~/.ssh` that GitHub already has for logging in (pointed at github.com in `~/.ssh/config.d/github`). It creates a new `id_ed25519` only when there's none, and asks first if `~/.ssh` isn't linked to OneDrive. It writes the git identity and makes sure the key is on GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
+6. **Git and GitHub**: asks for your name and email, logs in to GitHub with `gh` in the browser, then picks your SSH key: `~/.ssh/id_ed25519` if it exists, otherwise any key in `~/.ssh` that GitHub already has for logging in (pointed at github.com in `~/.ssh/config.d/github`). It creates a new `id_ed25519` only when there's none, and asks first if `~/.ssh` isn't linked to OneDrive. It writes the git identity and makes sure the key is on GitHub as both an authentication and a signing key. Commits and tags are signed with that key.
 
-8. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies these preferences:
+7. **macOS settings**: [`macos/settings.sh`](macos/settings.sh) applies these preferences:
    - **Appearance**: scroll bars only while scrolling, no wallpaper tinting, tinted Liquid Glass. Light or dark, the accent and folder colours, and the wallpaper come from the theme (step 10). Text highlights are always yellow.
    - **Language & Region**: English (US) first, Portuguese (Portugal) second, with Portugal as the region
    - **Dock**: on the right, size 34, no magnification, hides automatically with no delay and a quick slide, Scale effect, minimise into the app icon, dots under open apps, no suggested or recent apps. On the first run it pins Ghostty, ChatGPT, Chrome and System Settings (those installed) and leaves nothing on the right of the separator (no Downloads).
@@ -49,17 +48,16 @@ The installer runs these steps in order, and is safe to run again; finished step
 
    In System Settings, choose **Portuguese** under **Keyboard → Text Input → Edit**.
 
-9. **Siri, suggestions and ads off**: [`macos/debloat.sh`](macos/debloat.sh) turns off Siri ("Hey Siri" and its menu item too), Look Up suggestions, personalised ads and Game Center, then [`macos/agents.sh`](macos/agents.sh) stops about 15 Apple background agents for them (Siri, suggestions, ads, News, Tips; for your user only, no sudo, SIP stays on). They stop at your next login. `macos/agents.sh status` shows them, `macos/agents.sh enable` turns them back on.
-10. **Remove Apple apps**: lists whichever of GarageBand, iMovie, Keynote, Numbers and Pages are installed, plus GarageBand's sound library (several GB, kept if Logic Pro is installed), and after you confirm moves them to the Trash. They can be reinstalled from the App Store. The other built-in apps (Safari, Mail, Music, Photos, News, Stocks, ...) are on the read-only system volume, so macOS doesn't let them be removed.
-11. **Theme**: applies the theme (Nord the first time); see [Themes](#themes).
+8. **Siri, suggestions and ads off**: [`macos/debloat.sh`](macos/debloat.sh) turns off Siri ("Hey Siri" and its menu item too), Look Up suggestions, personalised ads and Game Center, then [`macos/agents.sh`](macos/agents.sh) stops about 15 Apple background agents for them (Siri, suggestions, ads, News, Tips; for your user only, no sudo, SIP stays on). They stop at your next login. `macos/agents.sh status` shows them, `macos/agents.sh enable` turns them back on.
+9. **Remove Apple apps**: lists whichever of GarageBand, iMovie, Keynote, Numbers and Pages are installed, plus GarageBand's sound library (several GB, kept if Logic Pro is installed), and after you confirm moves them to the Trash. They can be reinstalled from the App Store. The other built-in apps (Safari, Mail, Music, Photos, News, Stocks, ...) are on the read-only system volume, so macOS doesn't let them be removed.
+10. **Theme**: applies the theme (Nord the first time); see [Themes](#themes).
 
 Options, as environment variables:
 
 | Variable | Effect |
 | --- | --- |
 | `ONEDRIVE_SSH_DIR=name` | Use a different folder in OneDrive instead of `dot-ssh` |
-| `ONEDRIVE_CODEX_DIR=name` | Use a different folder in OneDrive instead of `codex` |
-| `DOTFILES_SKIP="onedrive brew ssh codex github macos debloat trash theme"` | Skip any of those steps (`trash` is removing the Apple apps) |
+| `DOTFILES_SKIP="onedrive brew ssh github macos debloat trash theme"` | Skip any of those steps (`trash` is removing the Apple apps) |
 
 ## What goes where
 
@@ -103,10 +101,8 @@ Run `bash bin/apply-app-configs` to apply the Thor, BetterCmdTab and VS Code cha
 | `modrinth` | Native app folder. The official override moves all data, including `app.db`, so it is not used |
 | `vorssaint` | Version 3.4.4 only reads `~/.config/vorssaint/settings.plist` at startup and does not write it. It is never seeded, and its native backup may hold private snippets. Use the vendor export only when you want startup overrides |
 | `wireshark-app` | Reads `~/.config/wireshark`, per its documentation |
-| `chatgpt` | Native location, not verified for XDG, so left alone |
-| `codex` | `~/.config/codex` through `CODEX_HOME` |
-| `claude` | Native location, not verified for XDG, so left alone |
-| `claude-code` | `~/.config/claude` through `CLAUDE_CONFIG_DIR`, with `~/.claude` linked there |
+| `codex` | `~/.config/codex` links to [the repo’s Codex directory](codex/README.md) on a fresh setup |
+| `claude`, `claude-code` | Directory created at `~/.config/claude` |
 
 To add a verified future app, find the vendor's documented path or an official XDG setting, check it against the installed version, then add a seed or link function to `macos/app-configs.sh` that never overwrites, a fixture test and a row here. Leave the app native when only a whole-data override exists.
 
@@ -114,7 +110,7 @@ VS Code's "Home" workspace is written to `~/.config/vscode/home.code-workspace` 
 
 Most configs in `~/.config` are links, so editing them edits the repo. Commit from here. The local exceptions are `~/.config/thor` and `~/.config/bettercmdtab`, which stay on this Mac.
 
-Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, `~/.codex`, `~/.zsh_history`, `~/.vimrc`, ...) is moved to `~/.local/state/dotfiles/backup/<timestamp>/`, never deleted. `git/local` and `git/allowed_signers` are generated per Mac and not tracked, nor are the colour files `theme` writes.
+Anything replaced (an old `~/.zshrc`, `~/.zprofile`, `~/.gitconfig`, `~/.ssh`, `~/.zsh_history`, `~/.vimrc`, ...) is moved to `~/.local/state/dotfiles/backup/<timestamp>/`, never deleted. `git/local` and `git/allowed_signers` are generated per Mac and not tracked, nor are the colour files `theme` writes.
 
 Only four things the dotfiles set up stay directly in `~/`: `~/.zshenv` (zsh reads it only from there; it points zsh at `~/.config/zsh`), `~/.ssh` (ssh only looks there), `~/.hushlogin` (an empty file that hides the "Last login" line in new terminals; macOS only looks there) and `~/.vscode` (where VS Code keeps extensions by default).
 
@@ -146,11 +142,9 @@ Put machine-specific settings in `zsh/conf.d/local.zsh`; git ignores it.
 
 JetBrains Mono 12, the theme's colours, and ⌃` toggles a quick terminal from any app (allow Ghostty under System Settings › Privacy & Security › Accessibility). Left ⌥ acts as Alt.
 
-## OneDrive: SSH and Codex
+## OneDrive SSH
 
-Keys stay in OneDrive, so every Mac signed in to the same account shares them. In Finder, right-click the OneDrive `dot-ssh` and `codex` folders and choose **Always Keep on This Device** so they are never cloud-only placeholders.
-
-The `codex` folder also holds live session files, so use it from one Mac at a time; two Macs running Codex against it at once make OneDrive conflict copies.
+Keys stay in OneDrive, so every Mac signed in to the same account shares them. In Finder, right-click the OneDrive `dot-ssh` folder and choose **Always Keep on This Device** so it is available offline.
 
 ## Themes
 
@@ -168,7 +162,7 @@ The `codex` folder also holds live session files, so use it from one Mac at a ti
 
 A theme recolours Ghostty, the prompt, zsh, fzf, eza, bat, delta (git diffs), lazygit, atuin, glow, yazi (its flavor and its header), Neovim, Vim, htop (through the terminal's colours) and VS Code (installing its theme extension), and sets macOS to light or dark, the native accent preset for the theme’s main hue, a Finder folder tint using the variant’s accent RGB, yellow text highlights, and a matching wallpaper on every Mission Control Space across all displays. Open Ghostty windows, Neovims and shells change on the spot. Each Mac keeps its own choice (`~/.local/state/dotfiles/theme`). Use `theme wallpaper list` to list image IDs, `theme wallpaper <image>` to select one, and `theme wallpaper current` to show the current image. The `realistic` and `illustrated` shortcuts select the current theme’s default and illustration respectively. Every bundled theme defaults to a photograph. All six Everforest variants use the rocky coastline, and Nord uses the Arctic radar station. Other themes use `wallpapers/realistic/<name>.jpg`, falling back to `wallpapers/<name>.jpg` or a gradient in the theme colours when artwork is missing.
 
-The ChatGPT desktop app (including Codex) gets the selected theme's light or dark mode, background, text, accent and diff colors. Reopen the app to pick up the saved palette. Set `THEME_NO_CODEX=1` to skip this when running `theme`. The palette is stored in `$CODEX_HOME/config.toml`, so it also syncs with OneDrive if your Codex folder is linked there.
+When you run `theme` directly, the ChatGPT desktop app (including Codex) gets the selected theme's light or dark mode, background, text, accent and diff colors. Reopen the app to pick up the saved palette. Set `THEME_NO_CODEX=1` to skip this when running `theme`. The installer skips the desktop palette.
 
 ## Editors
 

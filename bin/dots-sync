@@ -6,7 +6,7 @@
 #   dots-sync --all      the same, then re-apply everything
 #   dots-sync --dry-run  only show what would be committed, then pull and show what would be applied
 # Applying is install.sh without its questions: the OneDrive wizard, ~/.ssh,
-# Codex's folder, GitHub and removing Apple apps are never re-run from here.
+# GitHub and removing Apple apps are never re-run from here.
 set -uo pipefail
 
 DOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
@@ -60,11 +60,11 @@ has() { [[ -n $ALL ]] || grep -qE "$1" <<<"$changed"; }
 # Steps of install.sh to leave out: the interactive ones always, the others
 # unless their files changed. Configs are always re-linked (cheap, and picks up
 # new tools).
-skip="onedrive ssh codex github trash"
+skip="onedrive ssh github trash"
 has '^Brewfile(\.apps)?$'                               || skip+=" brew"
 has '^macos/(settings\.sh|sidebar\.swift)$'             || skip+=" macos"
 has '^macos/(debloat|agents)\.sh$'                      || skip+=" debloat"
-has '^(themes/|bin/(theme|wallpaper\.py|vscode-theme\.py|codex-theme\.py)$|starship/)' || skip+=" theme"
+has '^(themes/|bin/(theme|wallpaper\.py|vscode-theme\.py)$|starship/)' || skip+=" theme"
 
 if [[ -n $DRY ]]; then
   printf '\n%sWould run%s install.sh, skipping: %s\n' "$B" "$N" "$skip"

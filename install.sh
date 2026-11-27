@@ -8,20 +8,17 @@
 #      Brewfile.apps (Rosetta first, for Steam), and Chrome as the default browser
 #   4. Creates ~/Developer and the XDG folders, links the configs into
 #      ~/.config (and ~/.zshenv, VS Code's settings, ~/.local/bin/theme and
-#      dots-sync), moves stray dotfiles out of ~/ (Claude Code's into
-#      ~/.config/claude), adds a login item that gives apps CODEX_HOME and
-#      CLAUDE_CONFIG_DIR, and installs the yazi and Neovim (LazyVim) plugins
+#      dots-sync), creates a local config directory for Claude,
+#      links a fresh Codex home to the repo,
+#      moves stray dotfiles out of ~/, and installs the yazi and Neovim plugins
 #   5. Links ~/.ssh to the "dot-ssh" folder in OneDrive
-#   6. Links ~/.config/codex (Codex's settings and memory, found through
-#      $CODEX_HOME) to the "codex" folder in OneDrive, creating it there if it
-#      doesn't exist
-#   7. Git identity, GitHub login and SSH keys on GitHub
-#   8. macOS settings (macos/settings.sh)
-#   9. Turns off Siri, suggestions, ads and Game Center and their background
+#   6. Git identity, GitHub login and SSH keys on GitHub
+#   7. macOS settings (macos/settings.sh)
+#   8. Turns off Siri, suggestions, ads and Game Center and their background
 #      agents (macos/debloat.sh)
-#  10. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
+#  9. Moves the removable Apple apps (GarageBand, iMovie, Keynote, Numbers,
 #      Pages) and GarageBand's sound library to the Trash, after asking
-#  11. Applies the theme (bin/theme; Nord unless you picked another)
+#  10. Applies the theme (bin/theme; Nord unless you picked another)
 #
 # Safe to run again: anything already done is skipped. Anything replaced is
 # moved (never deleted) to $XDG_STATE_HOME/dotfiles/backup/<timestamp>/
@@ -29,9 +26,8 @@
 #
 # Environment overrides:
 #   ONEDRIVE_SSH_DIR     name of the ssh folder inside OneDrive (default: dot-ssh)
-#   ONEDRIVE_CODEX_DIR   name of the Codex folder inside OneDrive (default: codex)
 #   DOTFILES_SKIP        space-separated steps to skip:
-#                        onedrive brew ssh codex github macos debloat trash theme
+#                        onedrive brew ssh github macos debloat trash theme
 
 set -uo pipefail
 export HOMEBREW_NO_ENV_HINTS=1
@@ -76,7 +72,6 @@ STATE="$XSTATE/dotfiles"
 BACKUP="$STATE/backup/$(date +%Y%m%d-%H%M%S)"
 CLOUD="$HOME/Library/CloudStorage"
 SSH_DIR_NAME="${ONEDRIVE_SSH_DIR:-dot-ssh}"
-CODEX_DIR_NAME="${ONEDRIVE_CODEX_DIR:-codex}"
 SKIP=" ${DOTFILES_SKIP:-} "
 
 # ---------------------------------------------------------------- helpers
@@ -90,7 +85,7 @@ fi
 # The sections, in order. Before each one the whole list is shown: ✓ done,
 # ! done with warnings, – skipped, ▸ running now, ○ still to come.
 STEPS=("Command Line Tools and Homebrew" "OneDrive" "Apps and command-line tools" "Folders and configs"
-       "~/.ssh in OneDrive" "Codex's folder in OneDrive" "Git and GitHub" "macOS settings"
+       "~/.ssh in OneDrive" "Git and GitHub" "macOS settings"
        "Siri, suggestions and ads off" "Remove Apple apps" "Theme")
 STATUS=() CUR=-1 STEP_WARN=0 STEP_SKIP=0
 close_step() {
@@ -202,7 +197,7 @@ pick_onedrive() {
     info "More than one OneDrive folder:"
     i=0
     while IFS= read -r d; do i=$((i + 1)); info "  $i  $(pretty "$d")"; done <<<"$folders"
-    n="$(ask "Which one holds your $SSH_DIR_NAME and $CODEX_DIR_NAME folders?" 1)"
+    n="$(ask "Which one holds your $SSH_DIR_NAME folder?" 1)"
     OD="$(sed -n "${n}p" <<<"$folders")"
     [ -n "$OD" ] || die "not a choice: $n"
   fi
@@ -439,16 +434,20 @@ for f in .zsh_history .zsh_sessions .zcompdump* .lesshst .python_history .vimrc 
   done
 done
 
-# Keep Claude Code's settings in the XDG folder and link its default path there.
-CLAUDE_DIR="$CONFIG/claude"
-mkdir -p "$CLAUDE_DIR" || die "could not create $CLAUDE_DIR"
-if [ -d "$HOME/.claude" ] && ! [ "$HOME/.claude" -ef "$CLAUDE_DIR" ]; then
-  rsync -a --ignore-existing "$HOME/.claude/" "$CLAUDE_DIR/" || die "could not migrate ~/.claude into $CLAUDE_DIR"
+# Preserve any Claude symlink from an earlier installation.
+claude_config="$HOME/.config/claude"
+if [ ! -L "$claude_config" ]; then
+  mkdir -p "$claude_config" || warn "could not create $(pretty "$claude_config")"
 fi
-link "$CLAUDE_DIR" "$HOME/.claude"
-if [ -f "$HOME/.claude.json" ]; then
-  [ -e "$CLAUDE_DIR/.claude.json" ] || cp "$HOME/.claude.json" "$CLAUDE_DIR/.claude.json"
-  backup "$HOME/.claude.json" && ok "moved ~/.claude.json into $(pretty "$CLAUDE_DIR")"
+
+# A live Codex home may contain open databases. Preserve existing paths.
+codex_home="$HOME/.config/codex"
+if [ -L "$codex_home" ] && [ "$(readlink "$codex_home")" = "$DOTFILES/codex" ]; then
+  ok "$(pretty "$codex_home")"
+elif [ -e "$codex_home" ] || [ -L "$codex_home" ]; then
+  warn "existing $(pretty "$codex_home") preserved; see codex/README.md to migrate it"
+else
+  link "$DOTFILES/codex" "$codex_home"
 fi
 
 # The tools' own downloads, with the same folders zsh gives them (zsh/.zshenv).
@@ -501,91 +500,7 @@ else
   done
 fi
 
-# ---------------------------------------------------------------- 6. Codex → OneDrive
-
-# Codex's settings and memory. Codex looks in $CODEX_HOME (set in zsh/.zshenv to
-# $XDG_CONFIG_HOME/codex) instead of ~/.codex. The folder is created in OneDrive
-# if it isn't there yet.
-CODEX_HOME_DIR="$CONFIG/codex"
-step "$(pretty "$CODEX_HOME_DIR") → OneDrive/$CODEX_DIR_NAME"
-if skip codex; then
-  skipped
-elif [ -L "$CODEX_HOME_DIR" ] && [ -d "$CODEX_HOME_DIR" ] && [ "$(basename "$(readlink "$CODEX_HOME_DIR")")" = "$CODEX_DIR_NAME" ]; then
-  ok "already linked → $(readlink "$CODEX_HOME_DIR" | sed "s|$HOME|~|")"
-elif ! pick_onedrive; then
-  warn "no OneDrive folder found; Codex's folder stays on this Mac (run again after OneDrive syncs)"
-else
-  link_to_onedrive "$CODEX_HOME_DIR" "$CODEX_DIR_NAME"
-  info "${DIM}Use this folder from one Mac at a time; it holds live session files.${N}"
-fi
-# The old place, ~/.codex: bring across what OneDrive doesn't have, then back it up.
-# Without OneDrive the folder is still created, since Codex won't start if
-# CODEX_HOME points at nothing.
-if ! skip codex; then
-  mkdir -p "$CODEX_HOME_DIR"
-  if [ -d "$HOME/.codex" ] && [ ! -L "$HOME/.codex" ]; then
-    cp -Rn "$HOME/.codex/." "$CODEX_HOME_DIR/" 2>/dev/null || true
-    backup "$HOME/.codex" && ok "moved ~/.codex into $(pretty "$CODEX_HOME_DIR")"
-  elif [ -L "$HOME/.codex" ]; then
-    backup "$HOME/.codex"
-  fi
-fi
-
-# Apps opened from the Dock or Finder (ChatGPT, Claude, VS Code) don't read zsh's
-# files, so a login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for the whole
-# session at each login.
-CODEX_DB_DIR="$XSTATE/codex/sqlite"
-AGENT_LABEL="local.dotfiles.environment"
-AGENT="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
-mkdir -p "${AGENT%/*}"
-OLD_AGENT="$HOME/Library/LaunchAgents/local.dotfiles.codex-home.plist"   # earlier versions: Codex only
-if [ -f "$OLD_AGENT" ]; then
-  launchctl bootout "gui/$(id -u)/local.dotfiles.codex-home" 2>/dev/null || true
-  rm -f "$OLD_AGENT"
-fi
-CODEX_MIGRATION=""
-if ! skip codex || [ -f "$CODEX_DB_DIR/.migration-complete" ]; then
-  CODEX_MIGRATION="; /usr/bin/python3 \"$DOTFILES/bin/codex-sqlite-home.py\" \"$CODEX_HOME_DIR\" \"$CODEX_DB_DIR\" &amp;&amp; /bin/launchctl setenv CODEX_SQLITE_HOME \"$CODEX_DB_DIR\""
-fi
-cat > "$AGENT.tmp" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>$AGENT_LABEL</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/sh</string>
-    <string>-c</string>
-    <string>/bin/launchctl setenv CODEX_HOME "$CODEX_HOME_DIR"; /bin/launchctl setenv CLAUDE_CONFIG_DIR "$CLAUDE_DIR"$CODEX_MIGRATION</string>
-  </array>
-  <key>KeepAlive</key>
-  <dict><key>SuccessfulExit</key><false/></dict>
-  <key>ThrottleInterval</key>
-  <integer>15</integer>
-  <key>RunAtLoad</key>
-  <true/>
-</dict>
-</plist>
-PLIST
-if cmp -s "$AGENT.tmp" "$AGENT"; then
-  rm -f "$AGENT.tmp"
-  ok "login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for apps"
-else
-  mv "$AGENT.tmp" "$AGENT"
-  launchctl bootout "gui/$(id -u)/$AGENT_LABEL" 2>/dev/null || true
-  if launchctl bootstrap "gui/$(id -u)" "$AGENT" 2>/dev/null; then
-    ok "login item sets CODEX_HOME and CLAUDE_CONFIG_DIR for apps ($(pretty "$AGENT"))"
-  else
-    warn "could not load $(pretty "$AGENT"); it takes effect at the next login"
-  fi
-fi
-# Now as well, for apps opened from here on (already open ones need a restart).
-launchctl setenv CODEX_HOME "$CODEX_HOME_DIR" 2>/dev/null || true
-launchctl setenv CLAUDE_CONFIG_DIR "$CLAUDE_DIR" 2>/dev/null || true
-
-# ---------------------------------------------------------------- 7. Git & GitHub
+# ---------------------------------------------------------------- 6. Git & GitHub
 
 step "Git & GitHub"
 if skip github; then
@@ -682,7 +597,7 @@ else
   done
 fi
 
-# ---------------------------------------------------------------- 8. macOS settings
+# ---------------------------------------------------------------- 7. macOS settings
 
 step "macOS settings (Desktop & Dock, Finder, Keyboard, Trackpad, screenshots, ...)"
 if skip macos; then
@@ -695,7 +610,7 @@ else
   fi
 fi
 
-# ---------------------------------------------------------------- 9. Debloat
+# ---------------------------------------------------------------- 8. Debloat
 
 step "Turn off Siri, suggestions, personalised ads and Game Center"
 if skip debloat; then
@@ -751,12 +666,12 @@ else
   fi
 fi
 
-# ---------------------------------------------------------------- 11. Theme
+# ---------------------------------------------------------------- 10. Theme
 
 step "Theme (colours for every tool, macOS appearance, wallpaper)"
 if skip theme; then
   skipped
-elif zsh "$DOTFILES/bin/theme" apply; then
+elif THEME_NO_CODEX=1 zsh "$DOTFILES/bin/theme" apply; then
   info "${DIM}Change it any time with: theme${N}"
 else
   warn "the theme didn't fully apply; run: theme apply"
